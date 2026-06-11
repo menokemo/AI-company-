@@ -6,13 +6,13 @@
 
 ## التشغيل
 
-المنظومة كلها تُسلَّم جاهزة في هذا المستودع. على الـ `VM`:
+أمر واحد على الـ `VM` (بصلاحية root) يقوم بكل شيء — تثبيت الأدوات، استنساخ المستودع، ورفع الخدمات:
 
 ```bash
-git clone <repo-url> && cd AI-company && ./install.sh
+sudo bash bootstrap.sh
 ```
 
-السكربت يثبّت ويشغّل كل الخدمات تلقائيًا. بعدها كل شيء من المتصفح.
+سيطلب منك التوكن مرة واحدة (إدخال مخفي)، ثم يكمل تلقائيًا. بعدها كل شيء يُدار من المتصفح.
 
 ## المكوّنات
 
@@ -56,11 +56,12 @@ AI-company/
 ├── PROJECT_SUMMARY.md      # نظرة شاملة وحالة المزايا
 ├── CHANGELOG.md            # سجل التغييرات
 ├── BUGS_AND_FIXES.md       # المشاكل وحلولها
-├── install.sh              # سكربت التثبيت                    (قادم)
-├── infrastructure/         # docker-compose و .env.example   (قادم)
-├── llm-gateway/            # إعدادات LiteLLM                  (قادم)
+├── bootstrap.sh            # الإقلاع بأمر واحد
+├── install.sh              # سكربت التثبيت
+├── infrastructure/         # docker-compose و .env.example
+├── llm-gateway/            # إعدادات LiteLLM
 ├── agents/                 # وكلاء CrewAI + تكامل GitHub      (قادم)
-├── openhands/              # إعداد OpenHands                  (قادم)
+├── openhands/              # إعداد OpenHands (معزول، non-root) (قادم)
 └── start-page/             # لوحة التحكم الموحّدة            (قادم)
 ```
 
