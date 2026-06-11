@@ -73,6 +73,8 @@ OTEL_TELEMETRY_COLLECTION_ENABLED=false
 # LiteLLM
 LITELLM_MASTER_KEY=sk-$(openssl rand -hex 24)
 ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+OPENROUTER_API_KEY=
 EOF
   chmod 600 "$ENV_FILE"
   log "تم إنشاء .env وحمايته (600)."
