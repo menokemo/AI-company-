@@ -1,0 +1,95 @@
+name: ai-company
+
+networks:
+  ai-company-net:
+    driver: bridge
+
+volumes:
+  portainer_data:
+  infisical_pg_data:
+  infisical_redis_data:
+
+services:
+  # لوحة إدارة الحاويات من المتصفح
+  portainer:
+    image: portainer/portainer-ce:${PORTAINER_IMAGE_TAG:-lts}
+    container_name: ai-portainer
+    restart: unless-stopped
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - ai-company-net
+    mem_limit: 512m
+
+  # قاعدة بيانات Infisical
+  infisical-db:
+    image: postgres:${POSTGRES_IMAGE_TAG:-14-alpine}
+    container_name: ai-infisical-db
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - infisical_pg_data:/var/lib/postgresql/data
+    networks:
+      - ai-company-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  # ذاكرة التخزين المؤقت لـ Infisical
+  infisical-redis:
+    image: redis:${REDIS_IMAGE_TAG:-7-alpine}
+    container_name: ai-infisical-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - infisical_redis_data:/data
+    networks:
+      - ai-company-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+
+  # مخزن الأسرار المركزي (كل المفاتيح وكلمات المرور)
+  infisical:
+    image: infisical/infisical:${INFISICAL_IMAGE_TAG:-latest}
+    container_name: ai-infisical
+    restart: unless-stopped
+    depends_on:
+      infisical-db:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "8080:8080"
+    networks:
+      - ai-company-net
+    mem_limit: 1g
+
+  # بوابة النماذج الموحّدة
+  litellm:
+    image: ghcr.io/berriai/litellm:${LITELLM_IMAGE_TAG:-main-stable}
+    container_name: ai-litellm
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ../llm-gateway/config.yaml:/app/config.yaml:ro
+    ports:
+      - "4000:4000"
+    networks:
+      - ai-company-net
+    mem_limit: 1g

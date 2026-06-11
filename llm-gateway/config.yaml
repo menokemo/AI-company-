@@ -1,0 +1,16 @@
+# بوابة النماذج LiteLLM
+# المفاتيح تُقرأ من متغيّرات البيئة، وستُحقَن لاحقاً من Infisical.
+# عدّل أسماء النماذج حسب أحدث إصدار متاح لدى المزوّد.
+
+model_list:
+  - model_name: claude
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 600

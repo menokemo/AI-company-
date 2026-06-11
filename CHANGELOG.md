@@ -8,10 +8,25 @@
 ## [غير منشور]
 
 ### قيد التخطيط
-- سكربت التثبيت `install.sh` (التسليم النهائي).
-- البنية التحتية: `Docker` + `Portainer`.
-- إدارة الأسرار: `Infisical`.
-- بوابة النماذج: `LiteLLM`.
+- ربط LiteLLM والوكلاء بـ Infisical لقراءة المفاتيح.
+- المبرمج `OpenHands` (مكوّن داخلي).
+- خط الوكلاء `CrewAI` + تكامل GitHub لإنشاء ريبو لكل مشروع.
+
+---
+
+## [0.3.0] — طبقة البنية التحتية
+
+### أُضيف
+- `install.sh`: سكربت تثبيت idempotent (يثبّت Docker، يولّد الأسرار، يرفع الخدمات).
+- `infrastructure/docker-compose.yml`: `Portainer` + `Infisical` (+ Postgres + Redis) + `LiteLLM`.
+- `infrastructure/.env.example`: قالب موثّق لكل القيم المطلوبة.
+- `llm-gateway/config.yaml`: إعداد بوابة LiteLLM.
+
+### تفاصيل الاستقرار
+- `restart: unless-stopped` لكل الخدمات.
+- `healthchecks` لقاعدة البيانات و Redis، مع `depends_on` بشرط الصحّة.
+- تخزين دائم عبر `volumes`، وحدود ذاكرة لكل خدمة، وشبكة داخلية معزولة.
+- الأسرار تُولّد محلياً في `.env` (محميّ 600، غير مرفوع للريبو).
 
 ---
 
