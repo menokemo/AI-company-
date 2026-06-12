@@ -38,7 +38,9 @@
 - **التاريخ:** 2026-06-12
 - **الوصف:** `PermissionError: [Errno 13] Permission denied: '/.openhands-state/.jwt_secret'` — OpenHands يتعطّل عند بدء التشغيل.
 - **السبب:** OpenHands يحتاج كتابة ملفات الحالة (JWT secret وغيره) في `/.openhands-state/`، والمسار غير موجود أو غير قابل للكتابة داخل الحاوية.
-- **الحل المطبّق:** إضافة volume جديد `openhands_state` مُوصَّل على `/.openhands-state` — Docker volumes قابلة للكتابة افتراضياً.
+- **الحل المطبّق:** إضافة volume `openhands_state:/.openhands-state` + تشغيل `chown -R 1000:1000` على الـ volume لتصحيح الملكية لـ `uid 1000` (المستخدم الذي يعمل به OpenHands).
+- **تحديث BUG-005:** السبب الحقيقي هو أن الـ volume يُنشأ بملكية `root:root` (755) وOpenHands يعمل بـ `uid 1000`. الحل الصحيح: تشغيل `chown -R 1000:1000` على الـ volume قبل تشغيل الكونتينر.
+
 
 ---
 

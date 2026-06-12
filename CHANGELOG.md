@@ -13,6 +13,16 @@
 
 ---
 
+## [0.13.0] — OpenHands يعمل ✅
+
+### اكتمل
+- OpenHands يعمل على منفذ `3000` بدون أخطاء.
+- جذر المشكلة: volume مُنشأ بملكية `root:root` (755) وOpenHands يعمل بـ `uid 1000`.
+- الحل: `chown -R 1000:1000` على الـ volume قبل التشغيل.
+- إضافة `external: true` للـ volume في compose لإلغاء تحذير Docker Compose.
+
+---
+
 ## [0.12.0] — إصلاح BUG-005: OpenHands Permission Error
 
 ### إصلاح

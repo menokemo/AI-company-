@@ -10,6 +10,8 @@ volumes:
   infisical_redis_data:
   openhands_workspace:
   openhands_state:
+    external: true
+    name: ai-company_openhands_state
 
 services:
   portainer:
