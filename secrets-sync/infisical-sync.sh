@@ -56,6 +56,11 @@ ENV_FILE="$ENV_FILE" \
 MANAGED_KEYS="ANTHROPIC_API_KEY OPENAI_API_KEY OPENROUTER_API_KEY GITHUB_TOKEN" \
 python3 "$SCRIPT_DIR/sync.py"
 
+log "توليد إعدادات OpenHands تلقائياً..."
+OPENHANDS_STATE_DIR="/opt/ai-company/data/openhands-state" \
+ENV_FILE="$ENV_FILE" \
+python3 "$SCRIPT_DIR/generate-openhands-config.py"
+
 log "إعادة تشغيل LiteLLM بالمفاتيح الجديدة..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d litellm
 

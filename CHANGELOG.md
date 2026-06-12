@@ -13,6 +13,20 @@
 
 ---
 
+## [0.16.0] — OpenHands يتكوّن تلقائياً بالكامل
+
+### أُضيف
+- `secrets-sync/generate-openhands-config.py`: يولّد `/.openhands-state/settings.json` تلقائياً من `.env` بعد كل sync.
+- يتضمن: `llm_model`, `llm_base_url`, `llm_api_key`, `github_token`, `git_username`.
+- `infisical-sync.sh` يستدعيه تلقائياً بعد كل مزامنة.
+
+### النتيجة
+لما تشتغل المنظومة أو تعمل sync:
+1. Infisical → .env → settings.json → OpenHands
+2. OpenHands يشتغل بدون أي dialog أو إعداد يدوي.
+
+---
+
 ## [0.15.0] — لوحة التحكم + Auto-sync
 
 ### أُضيف
