@@ -13,6 +13,20 @@
 
 ---
 
+## [0.21.0] — المنظومة تعمل end-to-end ✅
+
+### اكتمل
+- GitHub repo ينشأ تلقائياً عند بدء مشروع جديد.
+- OpenHands يستقبل المهمة تلقائياً عبر `/api/conversations`.
+- الـ flow الكامل: Open WebUI → tools-api → GitHub + OpenHands.
+
+### إصلاحات
+- BUG-007: استبدال Fine-grained token بـ Classic token (صلاحية `repo`).
+- BUG-008: تصحيح OpenHands API format إلى `initial_user_msg`.
+- تبسيط tools-api/server.py وإزالة الكود القديم.
+
+---
+
 ## [0.20.0] — Tool Calls API + System Prompt
 
 ### أُضيف

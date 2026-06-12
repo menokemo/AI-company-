@@ -33,6 +33,24 @@
 
 ---
 
+### BUG-007 — GitHub Token لا يملك صلاحية إنشاء ريبوهات
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `403 Resource not accessible by personal access token` عند محاولة إنشاء ريبو.
+- **السبب:** التوكن كان Fine-grained بدون صلاحية إنشاء مستودعات.
+- **الحل المطبّق:** استبدال التوكن بـ Classic Token بصلاحية `repo` كاملة.
+
+---
+
+### BUG-008 — OpenHands API format خاطئ (422)
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `422 Unprocessable Entity` عند POST إلى `/api/conversations`.
+- **السبب:** الـ payload كان يستخدم `{"task": ...}` أو `{"repository": ...}` — والصحيح هو `{"initial_user_msg": ...}`.
+- **الحل المطبّق:** تحديث tools-api لاستخدام `initial_user_msg` مع الـ repo URL مضمّناً في نص المهمة.
+
+---
+
 ### BUG-006 — Docker volume يتجدد بملكية root عند كل force-recreate
 
 - **التاريخ:** 2026-06-12
