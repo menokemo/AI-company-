@@ -2,7 +2,7 @@
 Tool Calls API — خدمة الأدوات الخارجية
 تربط Open WebUI بـ GitHub و OpenHands
 """
-import os, json, subprocess, urllib.request, urllib.error
+import os, json, urllib.request, urllib.error, re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
@@ -26,66 +26,91 @@ def gh_request(method, path, data=None):
         return json.loads(e.read().decode()), e.code
 
 
+def get_github_username():
+    """جلب اسم المستخدم تلقائياً لو GIT_USERNAME فارغ"""
+    if GIT_USERNAME:
+        return GIT_USERNAME
+    data, status = gh_request("GET", "/user")
+    if status == 200:
+        return data.get("login", "")
+    return ""
+
+
 def create_github_repo(name: str, description: str = "", private: bool = False):
     """إنشاء ريبو GitHub جديد"""
     if not GITHUB_TOKEN:
         return {"error": "GITHUB_TOKEN غير مضبوط"}
-    safe_name = name.lower().replace(" ", "-").replace("_", "-")
+
+    safe_name = re.sub(r"[^a-zA-Z0-9\-]", "-", name.lower()).strip("-")
+    username  = get_github_username()
+
     data, status = gh_request("POST", "/user/repos", {
-        "name": safe_name,
+        "name":        safe_name,
         "description": description,
-        "private": private,
-        "auto_init": True,
+        "private":     private,
+        "auto_init":   True,
     })
+
     if status in (200, 201):
         return {
-            "success": True,
-            "repo_url": data.get("html_url"),
+            "success":   True,
+            "repo_url":  data.get("html_url"),
             "clone_url": data.get("clone_url"),
-            "name": safe_name,
+            "full_name": data.get("full_name"),
+            "name":      safe_name,
         }
-    if status == 422:
-        # الريبو موجود بالفعل
-        data2, _ = gh_request("GET", f"/repos/{GIT_USERNAME}/{safe_name}")
-        return {
-            "success": True,
-            "repo_url": data2.get("html_url"),
-            "clone_url": data2.get("clone_url"),
-            "name": safe_name,
-            "note": "ريبو موجود مسبقاً",
-        }
-    return {"error": f"فشل إنشاء الريبو: {data}"}
+
+    # ريبو موجود مسبقاً
+    if status == 422 and username:
+        data2, s2 = gh_request("GET", f"/repos/{username}/{safe_name}")
+        if s2 == 200:
+            return {
+                "success":   True,
+                "repo_url":  data2.get("html_url"),
+                "clone_url": data2.get("clone_url"),
+                "full_name": data2.get("full_name"),
+                "name":      safe_name,
+                "note":      "ريبو موجود مسبقاً",
+            }
+
+    return {"error": f"فشل إنشاء الريبو ({status}): {data.get('message','')}"}
 
 
-def start_coding_task(repo_url: str, task: str):
-    """إرسال مهمة لـ OpenHands عبر API"""
-    try:
-        payload = json.dumps({
-            "task": task,
-            "repository": repo_url,
-        }).encode()
-        req = urllib.request.Request(
-            f"{OPENHANDS_URL}/api/conversations",
-            data=payload, method="POST"
-        )
-        req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=10) as r:
-            resp = json.load(r)
-            return {"success": True, "conversation_id": resp.get("id"), "url": OPENHANDS_URL}
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "note": "OpenHands API غير متاحة — افتح OpenHands يدوياً وأعطه المهمة",
-            "openhands_url": "http://192.168.2.29:3000",
-            "task": task,
-            "repo": repo_url,
-        }
+def start_coding_task(repo_full_name: str, task: str):
+    """إرسال مهمة لـ OpenHands"""
+    endpoints = [
+        ("/api/conversations", {"initial_user_msg": task, "selected_repository": repo_full_name}),
+        ("/api/conversations", {"task": task, "repository": repo_full_name}),
+    ]
+    for path, payload in endpoints:
+        try:
+            body = json.dumps(payload).encode()
+            req  = urllib.request.Request(f"{OPENHANDS_URL}{path}", data=body, method="POST")
+            req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req, timeout=10) as r:
+                resp = json.load(r)
+                return {
+                    "success":         True,
+                    "conversation_id": resp.get("id") or resp.get("conversation_id"),
+                    "openhands_url":   OPENHANDS_URL,
+                }
+        except urllib.error.HTTPError as e:
+            if e.code == 422:
+                continue  # جرّب الـ format التاني
+            break
+        except Exception:
+            break
+
+    return {
+        "success":         False,
+        "note":            "OpenHands API — افتح الرابط وأعطه المهمة يدوياً",
+        "openhands_url":   "http://192.168.2.29:3000",
+        "suggested_task":  task,
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
-    def log_message(self, fmt, *args):
-        pass  # تصاميت الـ logs
+    def log_message(self, fmt, *args): pass
 
     def send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode()
@@ -105,31 +130,29 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self.send_json({"status": "ok", "github": bool(GITHUB_TOKEN)})
+            username = get_github_username()
+            self.send_json({"status": "ok", "github": bool(GITHUB_TOKEN), "username": username})
         else:
             self.send_json({"error": "not found"}, 404)
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length)) if length else {}
+        body   = json.loads(self.rfile.read(length)) if length else {}
 
         if self.path == "/create-repo":
-            result = create_github_repo(
+            self.send_json(create_github_repo(
                 name=body.get("name", "new-project"),
                 description=body.get("description", ""),
                 private=body.get("private", False),
-            )
-            self.send_json(result)
+            ))
 
         elif self.path == "/start-coding":
-            result = start_coding_task(
-                repo_url=body.get("repo_url", ""),
+            self.send_json(start_coding_task(
+                repo_full_name=body.get("repo_full_name", ""),
                 task=body.get("task", ""),
-            )
-            self.send_json(result)
+            ))
 
         elif self.path == "/create-and-start":
-            # إنشاء الريبو وتشغيل OpenHands دفعة واحدة
             repo = create_github_repo(
                 name=body.get("name", "new-project"),
                 description=body.get("description", ""),
@@ -137,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
             if not repo.get("success"):
                 self.send_json(repo); return
             coding = start_coding_task(
-                repo_url=repo["repo_url"],
+                repo_full_name=repo.get("full_name", ""),
                 task=body.get("task", ""),
             )
             self.send_json({**repo, "coding": coding})
@@ -147,6 +170,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"[+] Tools API تعمل على البورت {PORT}")
-    print(f"    GitHub token: {'✓' if GITHUB_TOKEN else '✗ غير مضبوط'}")
+    username = get_github_username()
+    print(f"[+] Tools API — البورت {PORT}")
+    print(f"    GitHub: {'✓ ' + username if GITHUB_TOKEN else '✗ غير مضبوط'}")
     HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
