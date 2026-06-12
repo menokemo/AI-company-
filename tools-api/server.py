@@ -78,35 +78,35 @@ def create_github_repo(name: str, description: str = "", private: bool = False):
 
 def start_coding_task(repo_full_name: str, task: str):
     """إرسال مهمة لـ OpenHands"""
-    endpoints = [
-        ("/api/conversations", {"initial_user_msg": task, "selected_repository": repo_full_name}),
-        ("/api/conversations", {"task": task, "repository": repo_full_name}),
-    ]
-    for path, payload in endpoints:
-        try:
-            body = json.dumps(payload).encode()
-            req  = urllib.request.Request(f"{OPENHANDS_URL}{path}", data=body, method="POST")
-            req.add_header("Content-Type", "application/json")
-            with urllib.request.urlopen(req, timeout=10) as r:
-                resp = json.load(r)
-                return {
-                    "success":         True,
-                    "conversation_id": resp.get("id") or resp.get("conversation_id"),
-                    "openhands_url":   OPENHANDS_URL,
-                }
-        except urllib.error.HTTPError as e:
-            if e.code == 422:
-                continue  # جرّب الـ format التاني
-            break
-        except Exception:
-            break
-
-    return {
-        "success":         False,
-        "note":            "OpenHands API — افتح الرابط وأعطه المهمة يدوياً",
-        "openhands_url":   "http://192.168.2.29:3000",
-        "suggested_task":  task,
-    }
+    # الـ format الصح: initial_user_msg + رابط الريبو في نص المهمة
+    full_task = task
+    if repo_full_name:
+        full_task = (f"Repository: https://github.com/{repo_full_name}\n\n"
+                     f"Clone it and work on it locally.\n\n{task}")
+    try:
+        body = json.dumps({"initial_user_msg": full_task}).encode()
+        req  = urllib.request.Request(
+            f"{OPENHANDS_URL}/api/conversations",
+            data=body, method="POST"
+        )
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=10) as r:
+            resp = json.load(r)
+            conv_id = resp.get("conversation_id") or resp.get("id")
+            return {
+                "success":         True,
+                "conversation_id": conv_id,
+                "openhands_url":   f"http://192.168.2.29:3000",
+                "note":            f"تابع التقدم على: http://192.168.2.29:3000",
+            }
+    except Exception as e:
+        return {
+            "success":        False,
+            "note":           "OpenHands يعمل — افتح الرابط وأعطه المهمة",
+            "openhands_url":  "http://192.168.2.29:3000",
+            "suggested_task": task,
+            "error":          str(e)[:100],
+        }
 
 
 class Handler(BaseHTTPRequestHandler):
