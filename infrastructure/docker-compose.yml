@@ -8,13 +8,11 @@ volumes:
   portainer_data:
   infisical_pg_data:
   infisical_redis_data:
-  dind_data:
   openhands_workspace:
-  dind_socket:
 
 services:
   portainer:
-    image: portainer/portainer-ce:${PORTAINER_IMAGE_TAG:-lts}
+    image: portainer/portainer-ce:lts
     container_name: ai-portainer
     restart: unless-stopped
     ports:
@@ -27,7 +25,7 @@ services:
     mem_limit: 512m
 
   infisical-db:
-    image: postgres:${POSTGRES_IMAGE_TAG:-14-alpine}
+    image: postgres:14-alpine
     container_name: ai-infisical-db
     restart: unless-stopped
     env_file: .env
@@ -43,7 +41,7 @@ services:
     mem_limit: 512m
 
   infisical-redis:
-    image: redis:${REDIS_IMAGE_TAG:-7-alpine}
+    image: redis:7-alpine
     container_name: ai-infisical-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "60", "1"]
@@ -59,7 +57,7 @@ services:
     mem_limit: 256m
 
   infisical:
-    image: infisical/infisical:${INFISICAL_IMAGE_TAG:-latest}
+    image: infisical/infisical:latest
     container_name: ai-infisical
     restart: unless-stopped
     depends_on:
@@ -77,7 +75,7 @@ services:
     mem_limit: 1g
 
   litellm:
-    image: ghcr.io/berriai/litellm:${LITELLM_IMAGE_TAG:-main-stable}
+    image: ghcr.io/berriai/litellm:main-stable
     container_name: ai-litellm
     restart: unless-stopped
     command: ["--config", "/app/config.yaml", "--port", "4000"]
@@ -94,54 +92,11 @@ services:
       - ai-company-net
     mem_limit: 1g
 
-  # Docker daemon معزول — لا يلمس Docker الحقيقي للـ VM
-  openhands-dind:
-    image: docker:${DIND_IMAGE_TAG:-27-dind}
-    container_name: ai-openhands-dind
-    restart: unless-stopped
-    privileged: true
-    environment:
-      - DOCKER_TLS_CERTDIR=
-    volumes:
-      - dind_data:/var/lib/docker
-      - openhands_workspace:/opt/workspace
-    networks:
-      - ai-company-net
-    healthcheck:
-      test: ["CMD", "docker", "info"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-    mem_limit: 2g
-
-  # جسر: يحوّل TCP الخاص بـ DinD إلى Unix socket يفهمه OpenHands
-  openhands-socat:
-    image: alpine/socat
-    container_name: ai-openhands-socat
-    restart: unless-stopped
-    depends_on:
-      openhands-dind:
-        condition: service_healthy
-    command: UNIX-LISTEN:/var/run/docker.sock,fork,reuseaddr,unlink-early TCP:ai-openhands-dind:2375
-    volumes:
-      - dind_socket:/var/run
-    networks:
-      - ai-company-net
-    healthcheck:
-      test: ["CMD", "test", "-S", "/var/run/docker.sock"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    mem_limit: 64m
-
-  # المبرمج الذكي — يتصل بـ DinD عبر socat، لا بـ Docker الحقيقي
   openhands:
-    image: ghcr.io/all-hands-ai/openhands:${OPENHANDS_IMAGE_TAG:-0.38}
+    image: ghcr.io/all-hands-ai/openhands:0.38
     container_name: ai-openhands
     restart: unless-stopped
     depends_on:
-      openhands-socat:
-        condition: service_healthy
       litellm:
         condition: service_started
     environment:
@@ -153,8 +108,8 @@ services:
       - SANDBOX_USER_ID=1000
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=nikolaik/python-nodejs:python3.12-nodejs22
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - openhands_workspace:/opt/workspace
-      - dind_socket:/var/run
     ports:
       - "3000:3000"
     networks:

@@ -13,6 +13,23 @@
 
 ---
 
+## [0.11.0] — تبسيط المنظومة + تحديث تلقائي عبر Infisical
+
+### تغيّر (تبسيط)
+- حذف `openhands-dind` و `openhands-socat` (كانا يسبّبان تعقيداً غير ضروري).
+- `openhands` يستخدم Docker socket مباشرةً (نفس أسلوب Portainer).
+- حذف volumes غير مستخدمة: `dind_data`, `dind_socket`.
+
+### أُضيف
+- `secrets-sync/get_secret.py`: يجلب قيمة سرّ واحد من Infisical.
+- `update.sh` (إعادة كتابة): يقرأ `GITHUB_TOKEN` من Infisical تلقائياً — لا إدخال يدوي. أمر واحد: `sudo bash /opt/ai-company/update.sh`.
+
+### الآن لتحديث المنظومة
+1. أضف `GITHUB_TOKEN` في Infisical (مرة واحدة).
+2. `sudo bash /opt/ai-company/update.sh` — بدون أي إدخال.
+
+---
+
 ## [0.10.0] — إصلاح OpenHands عبر socat bridge
 
 ### إصلاح (BUG-004)
