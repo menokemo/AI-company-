@@ -8,6 +8,7 @@ volumes:
   portainer_data:
   infisical_pg_data:
   infisical_redis_data:
+  open_webui_data:
   openhands_workspace:
 
 services:
@@ -136,3 +137,30 @@ services:
     networks:
       - ai-company-net
     mem_limit: 64m
+
+  # واجهة الشات الرئيسية — Open WebUI
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_IMAGE_TAG:-main}
+    container_name: ai-open-webui
+    restart: unless-stopped
+    environment:
+      # توجيه لـ LiteLLM كمزوّد OpenAI-compatible
+      - OPENAI_API_BASE_URL=http://ai-litellm:4000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      # تعطيل Ollama (مش محتاجينه)
+      - OLLAMA_BASE_URL=
+      - ENABLE_OLLAMA_API=false
+      # إعدادات عامة
+      - WEBUI_NAME=AI Company
+      - DEFAULT_LOCALE=ar
+      - ENABLE_SIGNUP=false
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      # Tool Calls API
+      - TOOLS_FUNCTION_CALLING_PROMPT_INJECTION=true
+    volumes:
+      - open_webui_data:/app/backend/data
+    ports:
+      - "8888:8080"
+    networks:
+      - ai-company-net
+    mem_limit: 1g
