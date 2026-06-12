@@ -125,3 +125,17 @@ services:
     networks:
       - ai-company-net
     mem_limit: 4g
+
+  # لوحة التحكم الموحّدة
+  start-page:
+    image: nginx:alpine
+    container_name: ai-start-page
+    restart: unless-stopped
+    volumes:
+      - ../start-page/index.html:/usr/share/nginx/html/index.html:ro
+      - ../start-page/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - ai-company-net
+    mem_limit: 64m

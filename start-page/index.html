@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Company — لوحة التحكم</title>
+<style>
+:root {
+  --bg: #0c0e13; --surface: #13161e; --border: #1e2230;
+  --text: #e2e6f0; --muted: #8892a4; --accent: #6c8fff;
+  --green: #3ecf8e; --red: #f87171; --yellow: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: "Segoe UI","Noto Naskh Arabic",system-ui,sans-serif;
+  min-height: 100vh; padding: 0 0 60px;
+}
+.top-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 16px 28px; display: flex; align-items: center;
+  justify-content: space-between;
+}
+.logo { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+.logo span { color: var(--accent); }
+.sync-time { font-size: 13px; color: var(--muted); }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
+h2 { font-size: 15px; color: var(--muted); font-weight: 500;
+     margin-bottom: 20px; letter-spacing: .4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+        gap: 16px; margin-bottom: 40px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; cursor: pointer;
+  transition: border-color .2s, transform .15s;
+  text-decoration: none; color: inherit; display: block;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card-head { display: flex; align-items: center;
+             justify-content: space-between; margin-bottom: 12px; }
+.card-icon { font-size: 26px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.off { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+.card-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.card-port { margin-top: 10px; font-size: 12px; color: var(--accent);
+             background: rgba(108,143,255,.1); display: inline-block;
+             padding: 2px 10px; border-radius: 20px; }
+.section { background: var(--surface); border: 1px solid var(--border);
+           border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+.section h3 { font-size: 15px; margin-bottom: 16px; color: var(--muted); }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff; font-size: 14px;
+  padding: 10px 20px; border-radius: 10px; border: none;
+  cursor: pointer; font-weight: 600; transition: opacity .2s;
+}
+.btn:hover { opacity: .85; }
+.btn.outline {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+.cmd {
+  background: #080a0f; border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; font-family: "Cascadia Code",Consolas,monospace;
+  font-size: 13px; color: #a8d8a0; direction: ltr; text-align: left;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.cmd code { flex: 1; word-break: break-all; }
+.copy-btn {
+  background: var(--border); border: none; color: var(--muted);
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  font-size: 12px; white-space: nowrap; transition: background .2s;
+}
+.copy-btn:hover { background: var(--accent); color: #fff; }
+.copy-btn.copied { background: var(--green); color: #000; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge {
+  font-size: 12px; padding: 4px 12px; border-radius: 20px;
+  background: rgba(62,207,142,.1); color: var(--green); border: 1px solid rgba(62,207,142,.2);
+}
+.badge.pending {
+  background: rgba(251,191,36,.1); color: var(--yellow); border-color: rgba(251,191,36,.2);
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="logo">🤖 <span>AI</span> Company</div>
+  <div class="sync-time" id="clock">جاري التحميل...</div>
+</div>
+
+<div class="wrap">
+  <h2>▸ الخدمات الجارية</h2>
+  <div class="grid" id="services"></div>
+
+  <div class="section">
+    <h3>↺ مزامنة المفاتيح من Infisical</h3>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.8">
+      عند إضافة أو تعديل مفاتيح في Infisical، شغّل الأمر التالي لتطبيق التغييرات على كل الخدمات:
+    </p>
+    <div class="cmd">
+      <code>sudo bash /opt/ai-company/secrets-sync/infisical-sync.sh</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'sudo bash /opt/ai-company/secrets-sync/infisical-sync.sh')">نسخ</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      المزامنة التلقائية: كل ساعة عبر cron job (مثبّت مع install.sh)
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>✓ حالة المشروع</h3>
+    <div class="badges" id="badges"></div>
+  </div>
+
+  <div class="section">
+    <h3>⌨ أوامر سريعة</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="cmd">
+        <code>sudo bash /opt/ai-company/update.sh</code>
+        <button class="copy-btn" onclick="copyCmd(this,'sudo bash /opt/ai-company/update.sh')">نسخ</button>
+      </div>
+      <div class="cmd">
+        <code>sudo docker compose -f /opt/ai-company/infrastructure/docker-compose.yml --env-file /opt/ai-company/infrastructure/.env ps</code>
+        <button class="copy-btn" onclick="copyCmd(this,'sudo docker compose -f /opt/ai-company/infrastructure/docker-compose.yml --env-file /opt/ai-company/infrastructure/.env ps')">نسخ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const host = window.location.hostname;
+
+const services = [
+  { name:"Portainer",   icon:"🐳", desc:"إدارة الحاويات من المتصفح",    port:9443, proto:"https", path:"/" },
+  { name:"Infisical",   icon:"🔐", desc:"مخزن المفاتيح والأسرار",        port:8080, proto:"http",  path:"/" },
+  { name:"LiteLLM",     icon:"⚡", desc:"بوابة النماذج (Anthropic/OpenAI/OpenRouter)", port:4000, proto:"http", path:"/ui" },
+  { name:"OpenHands",   icon:"🤖", desc:"المبرمج الذكي — اكتب مهمتك ابدأ", port:3000, proto:"http", path:"/" },
+];
+
+const badges = [
+  { label:"Docker + Portainer", done:true },
+  { label:"Infisical (Secrets)", done:true },
+  { label:"LiteLLM Gateway", done:true },
+  { label:"OpenHands", done:true },
+  { label:"Auto-sync (cron)", done:true },
+  { label:"لوحة التحكم", done:true },
+  { label:"CrewAI Agents", done:false },
+  { label:"GitHub integration", done:false },
+];
+
+function renderServices() {
+  const grid = document.getElementById("services");
+  services.forEach(s => {
+    const url = `${s.proto}://${host}:${s.port}${s.path}`;
+    const card = document.createElement("a");
+    card.className = "card"; card.href = url; card.target = "_blank";
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="card-icon">${s.icon}</span>
+        <div class="dot" id="dot-${s.port}"></div>
+      </div>
+      <div class="card-name">${s.name}</div>
+      <div class="card-desc">${s.desc}</div>
+      <div class="card-port">:${s.port}</div>
+    `;
+    grid.appendChild(card);
+    checkService(s.port, s.proto);
+  });
+}
+
+function checkService(port, proto) {
+  const dot = document.getElementById(`dot-${port}`);
+  const url = `${proto}://${host}:${port}/`;
+  fetch(url, { mode:"no-cors", cache:"no-cache", signal: AbortSignal.timeout(4000) })
+    .then(() => { dot.className = "dot on"; })
+    .catch(() => { dot.className = "dot off"; });
+}
+
+function renderBadges() {
+  const el = document.getElementById("badges");
+  badges.forEach(b => {
+    const span = document.createElement("span");
+    span.className = b.done ? "badge" : "badge pending";
+    span.textContent = (b.done ? "✓ " : "⏳ ") + b.label;
+    el.appendChild(span);
+  });
+}
+
+function copyCmd(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✓ تم"; btn.className = "copy-btn copied";
+    setTimeout(() => { btn.textContent = "نسخ"; btn.className = "copy-btn"; }, 2000);
+  }).catch(() => {
+    const t = document.createElement("textarea");
+    t.value = text; document.body.appendChild(t); t.select();
+    document.execCommand("copy"); document.body.removeChild(t);
+    btn.textContent = "✓ تم"; btn.className = "copy-btn copied";
+    setTimeout(() => { btn.textContent = "نسخ"; btn.className = "copy-btn"; }, 2000);
+  });
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    "آخر تحديث: " + now.toLocaleTimeString("ar-EG");
+}
+
+renderServices();
+renderBadges();
+updateClock();
+setInterval(() => {
+  services.forEach(s => checkService(s.port, s.proto));
+  updateClock();
+}, 30000);
+</script>
+</body>
+</html>

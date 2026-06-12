@@ -85,6 +85,13 @@ EOF
 fi
 
 # 5) رفع الخدمات
+
+# ── Auto-sync: مزامنة Infisical كل ساعة ───────────────────────────────
+log "إعداد المزامنة التلقائية (كل ساعة)..."
+SYNC_CMD="0 * * * * bash /opt/ai-company/secrets-sync/infisical-sync.sh >> /var/log/ai-company-sync.log 2>&1"
+( crontab -l 2>/dev/null | grep -v "infisical-sync"; echo "$SYNC_CMD" ) | crontab -
+log "تم إعداد cron job."
+
 log "تنزيل الصور..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
 log "تجهيز مساحة عمل OpenHands..."
