@@ -13,6 +13,20 @@
 
 ---
 
+## [0.9.0] — OpenHands يعمل + سكربت تحديث دائم
+
+### اكتمل
+- OpenHands شغّال على المنفذ `3000` عبر DinD معزول.
+- `openhands-dind` healthy، `openhands` started بنجاح.
+
+### أُضيف
+- `update.sh`: سكربت تحديث دائم يستخدم `curl` مع Authorization header بدلاً من تضمين التوكن في URL — يحل BUG-003 نهائياً.
+
+### وُثِّق
+- BUG-003: git pull يفشل بسبب ترميز التوكن في URL — حُلَّ بـ update.sh.
+
+---
+
 ## [0.8.0] — طبقة OpenHands (المبرمج المعزول)
 
 ### أُضيف
