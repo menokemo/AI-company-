@@ -38,7 +38,7 @@ fetch() {
 
 for f in "infrastructure/docker-compose.yml" "llm-gateway/config.yaml" \
          "secrets-sync/sync.py" "secrets-sync/get_secret.py" \
-         "secrets-sync/infisical-sync.sh" "update.sh"; do
+         "secrets-sync/infisical-sync.sh" ; do
   fetch "$f"
 done
 
