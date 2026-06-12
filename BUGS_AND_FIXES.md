@@ -33,6 +33,17 @@
 
 ---
 
+### BUG-006 — Docker volume يتجدد بملكية root عند كل force-recreate
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `openhands_state` volume يعود لملكية root بعد كل `--force-recreate`.
+- **السبب:** Docker volumes تُنشأ بملكية root افتراضياً. `force-recreate` يتجاهل الـ `chown` السابق.
+- **الحل المطبّق:** تحويل الـ volume إلى bind mount على `/opt/ai-company/data/openhands-state` (مجلد على الـ host). المجلد يُنشأ مع `chown 1000:1000` في `install.sh` مرة واحدة ولا يتغير.
+- **الملفات المعدَّلة:** `infrastructure/docker-compose.yml`، `install.sh`.
+
+
+---
+
 ### BUG-005 — OpenHands: Permission denied على /.openhands-state
 
 - **التاريخ:** 2026-06-12

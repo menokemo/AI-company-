@@ -54,6 +54,38 @@ try:
 except PermissionError:
     pass  # لو مش root، ده طبيعي
 
+
+# ── كتابة git credentials لاستخدامها داخل OpenHands ─────────────────
+git_token    = env.get("GITHUB_TOKEN", "")
+git_username = env.get("GIT_USERNAME", "menokemo")
+git_email    = env.get("GIT_EMAIL", f"{git_username}@users.noreply.github.com")
+
+if git_token:
+    # credentials store
+    creds_file = out_dir / ".git-credentials"
+    creds_file.write_text(
+        f"https://{git_username}:{git_token}@github.com\n",
+        encoding="utf-8"
+    )
+    try:
+        os.chown(creds_file, 1000, 1000)
+    except PermissionError:
+        pass
+
+    # .gitconfig
+    gitconfig = out_dir / ".gitconfig"
+    gitconfig.write_text(
+        f"[user]\n\tname = {git_username}\n\temail = {git_email}\n"
+        f"[credential]\n\thelper = store --file /.openhands-state/.git-credentials\n",
+        encoding="utf-8"
+    )
+    try:
+        os.chown(gitconfig, 1000, 1000)
+    except PermissionError:
+        pass
+
+    print(f"  Git credentials → {creds_file}")
+
 print(f"✓ OpenHands settings → {out_file}")
 keys_set = [k for k in settings if k != "agent" and k != "language"]
 print(f"  المفاتيح المُعيَّنة: {', '.join(keys_set)}")

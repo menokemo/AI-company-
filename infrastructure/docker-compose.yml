@@ -9,9 +9,6 @@ volumes:
   infisical_pg_data:
   infisical_redis_data:
   openhands_workspace:
-  openhands_state:
-    external: true
-    name: ai-company_openhands_state
 
 services:
   portainer:
@@ -119,7 +116,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - openhands_workspace:/opt/workspace
-      - openhands_state:/.openhands-state
+      - /opt/ai-company/data/openhands-state:/.openhands-state
     ports:
       - "3000:3000"
     networks:

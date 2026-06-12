@@ -13,6 +13,22 @@
 
 ---
 
+## [0.17.0] — إصلاح نهائي لـ OpenHands + Git credentials
+
+### إصلاح BUG-006 (نهائي)
+- `docker-compose.yml`: bind mount دائم لـ `/.openhands-state` بدل Docker volume.
+- `install.sh`: ينشئ `/opt/ai-company/data/openhands-state` بملكية `uid 1000` مرة واحدة.
+
+### أُضيف
+- `generate-openhands-config.py`: يولّد `.git-credentials` و `.gitconfig` داخل مجلد الـ state.
+- `infisical-sync.sh`: يعيد تشغيل OpenHands تلقائياً بعد كل sync.
+
+### النتيجة
+- OpenHands يبدأ بدون أي خطأ صلاحيات.
+- Git credentials جاهزة داخل الحاوية من أول تشغيل.
+
+---
+
 ## [0.16.0] — OpenHands يتكوّن تلقائياً بالكامل
 
 ### أُضيف

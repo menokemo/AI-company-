@@ -95,10 +95,9 @@ log "تم إعداد cron job."
 log "تنزيل الصور..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
 log "تجهيز مساحة عمل OpenHands..."
-docker volume create ai-company_openhands_state 2>/dev/null || true
-docker run --rm \
-  -v ai-company_openhands_state:/.openhands-state \
-  alpine chown -R 1000:1000 /.openhands-state
+mkdir -p /opt/ai-company/data/openhands-state
+chown -R 1000:1000 /opt/ai-company/data/openhands-state
+chmod 755 /opt/ai-company/data/openhands-state
 
 log "تشغيل الخدمات..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
