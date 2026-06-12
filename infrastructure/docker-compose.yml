@@ -112,6 +112,7 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - GIT_USERNAME=${GIT_USERNAME:-}
       # Sandbox
+      - SANDBOX_CONTAINER_NETWORK=ai-company_ai-company-net
       - SANDBOX_USER_ID=1000
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=nikolaik/python-nodejs:python3.12-nodejs22
     volumes:

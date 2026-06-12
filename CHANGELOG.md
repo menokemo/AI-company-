@@ -13,6 +13,22 @@
 
 ---
 
+## [0.22.0] — OpenHands runtime يشتغل ✅
+
+### اكتمل (BUG-009)
+- بناء `openhands-runtime-local:0.38` محلياً من source code داخل OpenHands container.
+- Runtime container يشتغل بنجاح باستخدام `openhands-runtime-local:0.38`.
+- الشبكة مضبوطة: `SANDBOX_CONTAINER_NETWORK=ai-company_ai-company-net`.
+
+### الآن المنظومة تعمل كاملاً:
+1. Open WebUI → مدير المشروع AI يناقشك
+2. tools-api → ينشئ GitHub repo
+3. OpenHands API → ينشئ conversation
+4. Runtime container → يكتب الكود فعلاً
+5. الكود يُحفظ على GitHub
+
+---
+
 ## [0.21.0] — المنظومة تعمل end-to-end ✅
 
 ### اكتمل

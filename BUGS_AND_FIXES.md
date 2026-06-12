@@ -33,6 +33,19 @@
 
 ---
 
+### BUG-009 — OpenHands runtime: docker.all-hands.ai غير موجود
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `docker.all-hands.ai` لا يمكن حل اسمه (NXDOMAIN) — OpenHands لا يستطيع تحميل runtime image.
+- **الحل المطبّق:**
+  1. نسخ source code من داخل OpenHands container.
+  2. بناء runtime image محلي (`openhands-runtime-local:0.38`) بدون micromamba الكامل.
+  3. ضبط `SANDBOX_RUNTIME_CONTAINER_IMAGE=openhands-runtime-local:0.38`.
+  4. ضبط `SANDBOX_CONTAINER_NETWORK=ai-company_ai-company-net` لحل مشكلة الشبكة.
+- **النتيجة:** runtime container يشتغل بنجاح.
+
+---
+
 ### BUG-007 — GitHub Token لا يملك صلاحية إنشاء ريبوهات
 
 - **التاريخ:** 2026-06-12
