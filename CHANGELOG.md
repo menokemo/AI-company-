@@ -13,6 +13,20 @@
 
 ---
 
+## [0.20.0] — Tool Calls API + System Prompt
+
+### أُضيف
+- `tools-api/server.py`: خدمة Python بسيطة (بدون مكتبات خارجية) تتيح:
+  - `POST /create-repo`: إنشاء GitHub repo.
+  - `POST /start-coding`: تشغيل OpenHands بمهمة.
+  - `POST /create-and-start`: الاثنان معاً.
+  - `GET /health`: فحص الحالة.
+- `tools-api/system-prompt.md`: System Prompt بالعربي لمدير المشروع (٥ مراحل).
+- إضافة `tools-api` كخدمة في `docker-compose.yml`.
+- تمرير `GITHUB_TOKEN` و `GIT_USERNAME` لـ Open WebUI و tools-api.
+
+---
+
 ## [0.19.0] — Open WebUI (واجهة الشات الرئيسية)
 
 ### أُضيف

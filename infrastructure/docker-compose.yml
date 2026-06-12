@@ -157,6 +157,9 @@ services:
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       # Tool Calls API
       - TOOLS_FUNCTION_CALLING_PROMPT_INJECTION=true
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GIT_USERNAME=${GIT_USERNAME:-}
+      - TOOLS_API_URL=http://ai-tools-api:9000
     volumes:
       - open_webui_data:/app/backend/data
     ports:
@@ -164,3 +167,17 @@ services:
     networks:
       - ai-company-net
     mem_limit: 1g
+
+  # خدمة الأدوات الخارجية — تربط Open WebUI بـ GitHub و OpenHands
+  tools-api:
+    build: ../tools-api
+    container_name: ai-tools-api
+    restart: unless-stopped
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GIT_USERNAME=${GIT_USERNAME:-}
+      - OPENHANDS_URL=http://ai-openhands:3000
+      - PORT=9000
+    networks:
+      - ai-company-net
+    mem_limit: 128m
