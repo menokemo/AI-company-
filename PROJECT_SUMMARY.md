@@ -95,8 +95,8 @@
 ## ٩. خارطة البناء
 
 1. هيكل المستودع + التوثيق ✅
-2. البنية التحتية (`Docker` + `Portainer`) + بداية `install.sh`
-3. الأسرار + البوابة (`Infisical` + `LiteLLM`)
+2. البنية التحتية (`Docker` + `Portainer`) + بداية `install.sh` ✅
+3. الأسرار + البوابة (`Infisical` + `LiteLLM`) ✅
 4. المبرمج (`OpenHands`)
 5. خط الوكلاء (`CrewAI`) + تكامل GitHub للمشاريع
 6. لوحة التحكم الموحّدة

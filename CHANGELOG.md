@@ -13,6 +13,20 @@
 
 ---
 
+## [0.7.0] — مزامنة Infisical مع LiteLLM تعمل بنجاح
+
+### اكتمل
+- المزامنة تعمل: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY` تُسحب من Infisical وتُحقن في `LiteLLM` تلقائياً.
+- `LiteLLM` يعيد تشغيله تلقائياً بعد كل مزامنة.
+- بيانات الاتصال (`Machine Identity`) محفوظة في `.env` (محميّ 600).
+
+### مشاكل وُثِّقت وحُلَّت
+- BUG-001: Client Secret خاطئ (401) — حُلَّ بإنشاء سرّ جديد.
+- BUG-002: صيغة git pull خاطئة — حُلَّت.
+- Clipboard API لا تعمل على HTTP — حلّ مؤقت بـ Chrome flag، حلّ دائم (HTTPS) مخطّط.
+
+---
+
 ## [0.6.0] — ربط Infisical بـ LiteLLM
 
 ### أُضيف
