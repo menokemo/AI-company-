@@ -13,6 +13,22 @@
 
 ---
 
+## [0.23.0] — code-writer يستبدل OpenHands للكتابة التلقائية
+
+### قرار
+- استبدال الاعتماد على OpenHands runtime بـ `code-writer` — خدمة بسيطة تستدعي Claude مباشرة وترفع الكود على GitHub.
+- OpenHands يبقى متاحاً للمستخدم يدوياً على :3000 للتعديلات والتكرار.
+
+### أُضيف
+- `code-writer/writer.py`: يستقبل وصف المشروع → يطلب من Claude الكود كاملاً → يرفعه على GitHub عبر API.
+- `code-writer/Dockerfile`: حاوية بسيطة بدون dependencies خارجية.
+- `tools-api`: تحدّث لاستخدام `code-writer` بدل OpenHands API.
+
+### النتيجة
+المشروع يُكتب ويُرفع على GitHub تلقائياً بدون runtime containers أو تعقيدات.
+
+---
+
 ## [0.22.0] — OpenHands runtime يشتغل ✅
 
 ### اكتمل (BUG-009)

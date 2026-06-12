@@ -177,8 +177,21 @@ services:
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - GIT_USERNAME=${GIT_USERNAME:-}
-      - OPENHANDS_URL=http://ai-openhands:3000
+      - CODE_WRITER_URL=http://ai-code-writer:9001
       - PORT=9000
     networks:
       - ai-company-net
     mem_limit: 128m
+
+  # كاتب الكود — يولّد الكود بـ Claude ويرفعه على GitHub مباشرة
+  code-writer:
+    build: ../code-writer
+    container_name: ai-code-writer
+    restart: unless-stopped
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - PORT=9001
+    networks:
+      - ai-company-net
+    mem_limit: 256m
