@@ -64,6 +64,10 @@ python3 "$SCRIPT_DIR/generate-openhands-config.py"
 log "إعادة تشغيل LiteLLM بالمفاتيح الجديدة..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d litellm
 
+log "إعادة تشغيل tools-api بالمفاتيح الجديدة..."
+docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
+  --env-file "$ENV_FILE" up -d tools-api
+
 log "إعادة تشغيل OpenHands بالإعدادات الجديدة..."
 docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
   --env-file "$ENV_FILE" up -d openhands
