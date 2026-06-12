@@ -33,6 +33,16 @@
 
 ---
 
+### BUG-004 — OpenHands يفشل بسبب غياب /var/run/docker.sock
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `stat: cannot statx '/var/run/docker.sock': No such file or directory` — OpenHands يُعيد التشغيل باستمرار.
+- **السبب:** entrypoint الخاص بـ OpenHands يتحقق صراحةً من وجود ملف `docker.sock` بغض النظر عن `DOCKER_HOST`.
+- **الحلول المجرَّبة والفاشلة:** `DOCKER_HOST=tcp://ai-openhands-dind:2375` وحده — فشل لأن الـ entrypoint يتحقق من الملف لا من المتغيّر.
+- **الحل المطبّق:** إضافة `openhands-socat` كجسر: يستمع على Unix socket في volume مشترك ويحوّل الاتصالات لـ DinD عبر TCP. الـ VM محمي تماماً.
+
+---
+
 ### BUG-003 — git pull يفشل عند تمرير التوكن في الـ URL
 
 - **التاريخ:** 2026-06-12

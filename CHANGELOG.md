@@ -13,6 +13,15 @@
 
 ---
 
+## [0.10.0] — إصلاح OpenHands عبر socat bridge
+
+### إصلاح (BUG-004)
+- إضافة `openhands-socat`: جسر Alpine socat يحوّل DinD TCP إلى Unix socket في volume مشترك.
+- `dind_socket` volume مشترك بين socat و openhands.
+- healthcheck على socat يضمن جاهزية الـ socket قبل تشغيل openhands.
+
+---
+
 ## [0.9.0] — OpenHands يعمل + سكربت تحديث دائم
 
 ### اكتمل
