@@ -8,9 +8,21 @@
 ## [غير منشور]
 
 ### قيد التخطيط
-- ربط LiteLLM والوكلاء بـ Infisical لقراءة المفاتيح.
 - المبرمج `OpenHands` (مكوّن داخلي).
 - خط الوكلاء `CrewAI` + تكامل GitHub لإنشاء ريبو لكل مشروع.
+
+---
+
+## [0.6.0] — ربط Infisical بـ LiteLLM
+
+### أُضيف
+- `secrets-sync/sync.py`: يسحب الأسرار من Infisical عبر Machine Identity (Universal Auth) ويحدّث المفاتيح في `.env`.
+- `secrets-sync/infisical-sync.sh`: سكربت ربط يطلب بيانات الاتصال مرة واحدة (إدخال مخفي للسرّ)، يزامن المفاتيح، ويعيد تشغيل `LiteLLM`.
+
+### كيف يعمل
+- `Infisical` يبقى مصدر الحقيقة الوحيد للمفاتيح.
+- المزامنة تحقن `ANTHROPIC_API_KEY` و `OPENAI_API_KEY` و `OPENROUTER_API_KEY` في `.env` (محميّ، غير مرفوع)، ثم يُعاد تشغيل `LiteLLM`.
+- لإعادة المزامنة بعد أي تعديل في Infisical: تشغيل نفس السكربت.
 
 ---
 
