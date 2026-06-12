@@ -13,6 +13,24 @@
 
 ---
 
+## [0.14.0] — ربط OpenHands بـ Infisical
+
+### إصلاح (مشكلة مشروعة)
+- OpenHands كان يطلب إعداد يدوي للـ LLM و Git بدل ما يقرأ من البيئة.
+- السبب: إعدادات OpenHands لم تكن مربوطة بـ Infisical مثل LiteLLM.
+
+### تغيّر
+- `LLM_MODEL` أصبح `openai/claude` (الصيغة الصحيحة لـ LiteLLM proxy).
+- إضافة `GITHUB_TOKEN` و `GIT_USERNAME` في متغيّرات البيئة لـ OpenHands.
+- تحديث `infisical-sync.sh`: يسحب `GITHUB_TOKEN` من Infisical مع باقي المفاتيح.
+- النتيجة: OpenHands يتكوّن تلقائياً بدون أي dialog يدوي.
+
+### الآن Infisical هو المصدر الوحيد لكل المفاتيح:
+- `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY` → LiteLLM ✅
+- `GITHUB_TOKEN` → OpenHands + update.sh ✅
+
+---
+
 ## [0.13.0] — OpenHands يعمل ✅
 
 ### اكتمل

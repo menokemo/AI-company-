@@ -77,6 +77,8 @@ LITELLM_MASTER_KEY=sk-$(openssl rand -hex 24)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 OPENROUTER_API_KEY=
+GITHUB_TOKEN=
+GIT_USERNAME=
 EOF
   chmod 600 "$ENV_FILE"
   log "تم إنشاء .env وحمايته (600)."

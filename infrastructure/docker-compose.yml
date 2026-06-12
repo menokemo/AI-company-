@@ -105,9 +105,15 @@ services:
     environment:
       - WORKSPACE_BASE=/opt/workspace
       - WORKSPACE_MOUNT_PATH=/opt/workspace
+      # LLM عبر LiteLLM Gateway (بيقرأ من .env)
       - LLM_BASE_URL=http://ai-litellm:4000
       - LLM_API_KEY=${LITELLM_MASTER_KEY}
-      - LLM_MODEL=claude
+      - LLM_MODEL=openai/claude
+      - LLM_NUM_RETRIES=3
+      # Git (بيقرأ من .env بعد sync من Infisical)
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GIT_USERNAME=${GIT_USERNAME:-}
+      # Sandbox
       - SANDBOX_USER_ID=1000
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=nikolaik/python-nodejs:python3.12-nodejs22
     volumes:
