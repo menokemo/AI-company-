@@ -8,6 +8,8 @@ volumes:
   portainer_data:
   infisical_pg_data:
   infisical_redis_data:
+  dind_data:
+  openhands_workspace:
 
 services:
   # لوحة إدارة الحاويات من المتصفح
@@ -58,7 +60,7 @@ services:
       retries: 10
     mem_limit: 256m
 
-  # مخزن الأسرار المركزي (كل المفاتيح وكلمات المرور)
+  # مخزن الأسرار المركزي
   infisical:
     image: infisical/infisical:${INFISICAL_IMAGE_TAG:-latest}
     container_name: ai-infisical
@@ -95,3 +97,50 @@ services:
     networks:
       - ai-company-net
     mem_limit: 1g
+
+  # Docker daemon معزول خاص بـ OpenHands (لا يلمس Docker الحقيقي للـ VM)
+  openhands-dind:
+    image: docker:${DIND_IMAGE_TAG:-27-dind}
+    container_name: ai-openhands-dind
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - dind_data:/var/lib/docker
+      - openhands_workspace:/opt/workspace
+    networks:
+      - ai-company-net
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    mem_limit: 2g
+
+  # المبرمج الذكي — معزول عبر DinD، لا يصل لـ Docker الحقيقي للـ VM
+  openhands:
+    image: ghcr.io/all-hands-ai/openhands:${OPENHANDS_IMAGE_TAG:-0.38}
+    container_name: ai-openhands
+    restart: unless-stopped
+    depends_on:
+      openhands-dind:
+        condition: service_healthy
+      litellm:
+        condition: service_started
+    environment:
+      - DOCKER_HOST=tcp://ai-openhands-dind:2375
+      - WORKSPACE_BASE=/opt/workspace
+      - WORKSPACE_MOUNT_PATH=/opt/workspace
+      - LLM_BASE_URL=http://ai-litellm:4000
+      - LLM_API_KEY=${LITELLM_MASTER_KEY}
+      - LLM_MODEL=claude
+      - SANDBOX_USER_ID=1000
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=nikolaik/python-nodejs:python3.12-nodejs22
+    volumes:
+      - openhands_workspace:/opt/workspace
+    ports:
+      - "3000:3000"
+    networks:
+      - ai-company-net
+    mem_limit: 4g

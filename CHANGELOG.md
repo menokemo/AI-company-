@@ -13,6 +13,22 @@
 
 ---
 
+## [0.8.0] — طبقة OpenHands (المبرمج المعزول)
+
+### أُضيف
+- `openhands-dind`: Docker daemon معزول (Docker-in-Docker) يمنع OpenHands من لمس Docker الحقيقي للـ VM.
+- `openhands`: المبرمج الذكي، يتصل بـ DinD (لا بـ VM)، مكوّن بـ LiteLLM كبوابة نماذج.
+- إضافة volumes: `dind_data` و `openhands_workspace`.
+- تحديث `.env.example` و `install.sh` بإضافة `DIND_IMAGE_TAG` و `OPENHANDS_IMAGE_TAG`.
+
+### تفاصيل العزل الأمني
+- OpenHands يتحدث لـ `tcp://ai-openhands-dind:2375` فقط — لا وصول لـ `/var/run/docker.sock` الحقيقي.
+- أي containers ينشئها OpenHands تعيش داخل DinD معزولة تماماً عن المضيف.
+- مساحة العمل محدودة بـ volume منفصل (`openhands_workspace`).
+- sandbox يعمل بـ `SANDBOX_USER_ID=1000` (non-root).
+
+---
+
 ## [0.7.0] — مزامنة Infisical مع LiteLLM تعمل بنجاح
 
 ### اكتمل
