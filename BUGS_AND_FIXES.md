@@ -33,6 +33,15 @@
 
 ---
 
+### BUG-005 — OpenHands: Permission denied على /.openhands-state
+
+- **التاريخ:** 2026-06-12
+- **الوصف:** `PermissionError: [Errno 13] Permission denied: '/.openhands-state/.jwt_secret'` — OpenHands يتعطّل عند بدء التشغيل.
+- **السبب:** OpenHands يحتاج كتابة ملفات الحالة (JWT secret وغيره) في `/.openhands-state/`، والمسار غير موجود أو غير قابل للكتابة داخل الحاوية.
+- **الحل المطبّق:** إضافة volume جديد `openhands_state` مُوصَّل على `/.openhands-state` — Docker volumes قابلة للكتابة افتراضياً.
+
+---
+
 ### BUG-004 — OpenHands يفشل بسبب غياب /var/run/docker.sock
 
 - **التاريخ:** 2026-06-12

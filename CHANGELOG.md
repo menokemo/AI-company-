@@ -13,6 +13,13 @@
 
 ---
 
+## [0.12.0] — إصلاح BUG-005: OpenHands Permission Error
+
+### إصلاح
+- إضافة volume `openhands_state:/.openhands-state` — يحل خطأ الصلاحيات عند كتابة JWT secret.
+
+---
+
 ## [0.11.0] — تبسيط المنظومة + تحديث تلقائي عبر Infisical
 
 ### تغيّر (تبسيط)
