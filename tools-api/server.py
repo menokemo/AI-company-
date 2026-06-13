@@ -5,47 +5,6 @@ GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
 
-# قائمة شاملة بموديلات كل مزوّد
-ALL_PROVIDER_MODELS = {
-    "anthropic": {
-        "label": "Anthropic 🟠",
-        "key_env": "ANTHROPIC_API_KEY",
-        "models": [
-            "claude-sonnet-4-5-20251022",
-            "claude-opus-4-5",
-            "claude-haiku-4-5",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-            "claude-3-opus-20240229",
-            "claude-3-haiku-20240307",
-        ]
-    },
-    "openai": {
-        "label": "OpenAI 🟢",
-        "key_env": "OPENAI_API_KEY",
-        "models": [
-            "gpt-4o","gpt-4o-mini","o1","o1-mini","o3-mini",
-            "gpt-4-turbo","gpt-4","gpt-3.5-turbo",
-        ]
-    },
-    "openrouter": {
-        "label": "OpenRouter 🔵",
-        "key_env": "OPENROUTER_API_KEY",
-        "models": [
-            "auto",
-            "meta-llama/llama-3.3-70b-instruct",
-            "meta-llama/llama-3.1-405b-instruct",
-            "google/gemini-pro-1.5",
-            "google/gemini-flash-1.5",
-            "deepseek/deepseek-r1",
-            "deepseek/deepseek-v3",
-            "mistralai/mistral-large",
-            "qwen/qwen-2.5-72b-instruct",
-            "cohere/command-r-plus",
-        ]
-    },
-}
-
 _providers_cache = {"data": {}, "ts": 0}
 
 def _read_env() -> dict:
@@ -61,40 +20,17 @@ def _read_env() -> dict:
         except: pass
     return env
 
-def _fetch_anthropic_models(api_key: str) -> list:
-    req = urllib.request.Request("https://api.anthropic.com/v1/models")
-    req.add_header("x-api-key", api_key)
-    req.add_header("anthropic-version", "2023-06-01")
-    try:
-        with urllib.request.urlopen(req, timeout=8) as r:
-            data = json.load(r)
-            models = [m["id"] for m in data.get("data", [])]
-            return sorted(models, reverse=True)
-    except: return ALL_PROVIDER_MODELS["anthropic"]["models"]
-
-def _fetch_openai_models(api_key: str) -> list:
-    req = urllib.request.Request("https://api.openai.com/v1/models")
-    req.add_header("Authorization", f"Bearer {api_key}")
-    try:
-        with urllib.request.urlopen(req, timeout=8) as r:
-            data = json.load(r)
-            # فلترة موديلات المحادثة فقط
-            models = [m["id"] for m in data.get("data", [])
-                      if any(x in m["id"] for x in ["gpt-4","gpt-3.5","o1","o3","o4"])]
-            return sorted(set(models), reverse=True)
-    except: return ALL_PROVIDER_MODELS["openai"]["models"]
-
-def _fetch_openrouter_models() -> list:
-    req = urllib.request.Request("https://openrouter.ai/api/v1/models")
-    try:
-        with urllib.request.urlopen(req, timeout=8) as r:
-            data = json.load(r)
-            models = [m["id"] for m in data.get("data", [])]
-            return sorted(models)
-    except: return ALL_PROVIDER_MODELS["openrouter"]["models"]
+def _fetch_models_from_url(url: str, headers: dict, data_path: str = "data", id_field: str = "id") -> list:
+    """جلب الموديلات من أي endpoint عام."""
+    req = urllib.request.Request(url)
+    for k, v in headers.items(): req.add_header(k, v)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        data = json.load(r)
+        items = data.get(data_path, data) if isinstance(data, dict) else data
+        return [m[id_field] for m in items if isinstance(m, dict) and id_field in m]
 
 def get_available_providers(force_refresh: bool = False) -> dict:
-    """يجيب الموديلات مباشرة من كل API — مكاش (cached) لمدة ساعة."""
+    """يجيب كل الموديلات مباشرة من API كل مزوّد — بدون hardcoded."""
     import time
     global _providers_cache
     if not force_refresh and _providers_cache["data"] and (time.time() - _providers_cache["ts"]) < 3600:
@@ -102,25 +38,53 @@ def get_available_providers(force_refresh: bool = False) -> dict:
 
     env = _read_env()
     result = {}
+    errors = {}
 
-    anthropic_key = env.get("ANTHROPIC_API_KEY","")
-    if len(anthropic_key) > 10:
-        models = _fetch_anthropic_models(anthropic_key)
-        result["anthropic"] = {"label":"Anthropic 🟠","models":models,"configured":True,"count":len(models)}
+    # ── Anthropic ────────────────────────────────────────────────────────
+    key = env.get("ANTHROPIC_API_KEY","")
+    if len(key) > 10:
+        try:
+            models = _fetch_models_from_url(
+                "https://api.anthropic.com/v1/models",
+                {"x-api-key": key, "anthropic-version": "2023-06-01"},
+                data_path="data", id_field="id"
+            )
+            result["anthropic"] = {"label":"Anthropic 🟠","models":sorted(models,reverse=True),"count":len(models)}
+        except Exception as e:
+            errors["anthropic"] = str(e)
 
-    openai_key = env.get("OPENAI_API_KEY","")
-    if len(openai_key) > 10:
-        models = _fetch_openai_models(openai_key)
-        result["openai"] = {"label":"OpenAI 🟢","models":models,"configured":True,"count":len(models)}
+    # ── OpenAI ────────────────────────────────────────────────────────────
+    key = env.get("OPENAI_API_KEY","")
+    if len(key) > 10:
+        try:
+            all_models = _fetch_models_from_url(
+                "https://api.openai.com/v1/models",
+                {"Authorization": f"Bearer {key}"},
+                data_path="data", id_field="id"
+            )
+            # إزالة موديلات غير النصية (embedding, whisper, dall-e, tts)
+            chat_models = [m for m in all_models if not any(
+                x in m for x in ["embedding","whisper","dall-e","tts-","babbage","davinci","ada"]
+            )]
+            result["openai"] = {"label":"OpenAI 🟢","models":sorted(chat_models,reverse=True),"count":len(chat_models)}
+        except Exception as e:
+            errors["openai"] = str(e)
 
-    openrouter_key = env.get("OPENROUTER_API_KEY","")
-    if len(openrouter_key) > 10:
-        models = _fetch_openrouter_models()
-        result["openrouter"] = {"label":"OpenRouter 🔵","models":models,"configured":True,"count":len(models)}
+    # ── OpenRouter ────────────────────────────────────────────────────────
+    key = env.get("OPENROUTER_API_KEY","")
+    if len(key) > 10:
+        try:
+            models = _fetch_models_from_url(
+                "https://openrouter.ai/api/v1/models",
+                {"Authorization": f"Bearer {key}"},
+                data_path="data", id_field="id"
+            )
+            result["openrouter"] = {"label":"OpenRouter 🔵","models":sorted(models),"count":len(models)}
+        except Exception as e:
+            errors["openrouter"] = str(e)
 
-    if not result:
-        result = {k: {"label":v["label"],"models":v["models"],"configured":False,"count":len(v["models"])}
-                  for k,v in ALL_PROVIDER_MODELS.items()}
+    if errors:
+        result["_errors"] = errors
 
     _providers_cache = {"data": result, "ts": time.time()}
     return result
