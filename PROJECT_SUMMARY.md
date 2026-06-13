@@ -124,3 +124,44 @@
 - **النماذج:** عدة مزوّدين سحابيين — `Anthropic` و `OpenAI` و `OpenRouter` — عبر بوابة `LiteLLM` موحّدة. النماذج المحلية مؤجّلة.
 - **بناء المنظومة:** تُبنى بالكامل وتُسلَّم كسكربت تثبيت. `OpenHands` مكوّن داخلي وليس أداة بناء.
 - **تخزين المشاريع:** على GitHub (ريبو لكل مشروع)، وليس على السيرفر.
+
+---
+
+## الحالة النهائية للمنظومة (يونيو 2026) ✅
+
+### Flow كامل يعمل:
+```
+المستخدم (Open WebUI :8888)
+    ↓ يشرح الفكرة
+مدير المشروع AI (Claude)
+    ↓ يناقش ويوافق
+create_project tool
+    ↓
+GitHub API → ينشئ repo جديد (menokemo/project-name)
+    ↓
+OpenHands V1 API → POST /api/v1/app-conversations
+    ↓
+agent-server (ghcr.io/openhands/agent-server:1.25.0-python)
+    ↓ يكلون الريبو
+    ↓ يكتب الكود
+    ↓ يعمل commit على branch جديد
+    ↓ يدفع على GitHub
+GitHub branch → Pull Request → مراجعة → merge لـ main
+```
+
+### إعدادات LLM في OpenHands:
+- **يجب إعدادها مرة واحدة بعد التثبيت** عبر Settings UI:
+  - Name: litellm
+  - Custom Model: openai/claude
+  - Base URL: http://VM_IP:4000
+  - API Key: LITELLM_MASTER_KEY
+
+### GitHub Integration:
+- يتم أوتوماتيك عبر `infisical-sync.sh` بعد كل sync
+- API: `POST /api/v1/secrets/git-providers`
+
+### الـ Workflow الاحترافي للكود:
+- OpenHands يكتب الكود على branch جديد (مش main مباشرة)
+- ده best practice — الكود يُراجع قبل الـ merge
+- المستقبل: إضافة auto Pull Request creation
+

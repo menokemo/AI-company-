@@ -13,6 +13,22 @@
 
 ---
 
+## [0.26.0] — المنظومة تعمل بالكامل ✅
+
+### المنجزات
+- **OpenHands V1** يكتب كود حقيقي ويدفعه على GitHub
+- **GitHub Integration** أوتوماتيك من Infisical عبر `/api/v1/secrets/git-providers`
+- **Workflow احترافي:** الكود يُدفع على branch جديد (مش main)
+- **tools-api:** `git_provider: "github"` + تعليمات push واضحة
+
+### Workflow النهائي
+Open WebUI → مدير المشروع → create_project → GitHub repo → OpenHands → branch → PR → main
+
+### ملاحظة
+إعداد LLM في OpenHands Settings يُعمل مرة واحدة بعد التثبيت.
+
+---
+
 ## [0.25.0] — GitHub push أوتوماتيك من Infisical
 
 ### المشكلة
