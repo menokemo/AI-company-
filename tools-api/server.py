@@ -46,10 +46,12 @@ def create_repo(name, description=""):
 
 def start_coding(full_name, task):
     """إرسال مهمة لـ OpenHands V1 API"""
-    # V1 API: POST /api/v1/app-conversations
+    msg = (f"Repository: https://github.com/{full_name}\n\n"
+           f"Clone this repository and complete the following task, "
+           f"then git add, commit, and push your changes:\n\n{task}")
     payload = {
         "initial_message": {
-            "content": f"Repository: https://github.com/{full_name}\n\nClone this repository and complete the following task, then commit and push your changes:\n\n{task}"
+            "content": [{"type": "text", "text": msg}]
         },
         "selected_repository": full_name,
     }
@@ -62,12 +64,13 @@ def start_coding(full_name, task):
         req.add_header("Content-Type", "application/json")
         with urllib.request.urlopen(req, timeout=15) as r:
             d = json.load(r)
-            conv_id = d.get("conversation_id") or d.get("id")
+            conv_id = d.get("id") or d.get("conversation_id")
             return {
                 "success": True,
                 "conversation_id": conv_id,
+                "status": d.get("status"),
                 "url": f"http://192.168.2.29:3000",
-                "conversation_url": f"http://192.168.2.29:3000/{conv_id}" if conv_id else None
+                "conversation_url": f"http://192.168.2.29:3000/conversations/{conv_id}" if conv_id else None
             }
     except urllib.error.HTTPError as e:
         err_body = e.read().decode()
