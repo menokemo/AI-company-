@@ -11,18 +11,8 @@ def _model(env_key: str, default: str = "claude") -> str:
     return os.environ.get(env_key, default)
 
 def _read_api_keys() -> dict:
-    """يقرأ API keys من .env — بدون hardcoded."""
-    keys = dict(os.environ)
-    for path in ["/opt/ai-company/infrastructure/.env"]:
-        try:
-            with open(path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if "=" in line and not line.startswith("#"):
-                        k, _, v = line.partition("=")
-                        if v.strip(): keys[k.strip()] = v.strip()
-        except: pass
-    return keys
+    """يقرأ API keys من env — مُحقَنة من docker-compose/Infisical."""
+    return dict(os.environ)
 
 
 def llm_call(model: str, system: str, user: str, max_tokens: int = 2000) -> str:

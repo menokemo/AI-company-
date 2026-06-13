@@ -20,17 +20,8 @@ def save_mockup(html: str, project: str, style: str, mid: int) -> str:
 _providers_cache = {"data": {}, "ts": 0}
 
 def _read_env() -> dict:
-    env = dict(os.environ)
-    for path in ["/opt/ai-company/infrastructure/.env"]:
-        try:
-            with open(path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if "=" in line and not line.startswith("#"):
-                        k, _, v = line.partition("=")
-                        if v.strip(): env[k.strip()] = v.strip()
-        except: pass
-    return env
+    """يقرأ من env مباشرة — API keys مُحقَنة من docker-compose/Infisical."""
+    return dict(os.environ)
 
 def _fetch_models_from_url(url: str, headers: dict, data_path: str = "data", id_field: str = "id") -> list:
     """جلب الموديلات من أي endpoint عام."""
@@ -202,8 +193,8 @@ def start_coding(full_name, task):
                 "success": True,
                 "conversation_id": conv_id,
                 "status": d.get("status"),
-                "url": f"http://192.168.2.29:3000",
-                "conversation_url": f"http://192.168.2.29:3000/conversations/{conv_id}" if conv_id else None
+                "url": f"http://{HOST_IP}:3000",
+                "conversation_url": f"http://{HOST_IP}:3000/conversations/{conv_id}" if conv_id else None
             }
     except urllib.error.HTTPError as e:
         err_body = e.read().decode()

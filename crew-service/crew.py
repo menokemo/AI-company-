@@ -80,7 +80,7 @@ def full_pipeline(project: dict) -> dict:
         result["stages"]["openhands"] = oh
         result["success"]         = oh.get("success", False)
         result["conversation_id"] = oh.get("conversation_id")
-        result["conversation_url"] = f"http://192.168.2.29:3000/conversations/{oh.get('conversation_id')}" if oh.get("conversation_id") else None
+        result["conversation_url"] = f"http://{os.environ.get("HOST_IP","localhost")}:3000/conversations/{oh.get("conversation_id")}" if oh.get("conversation_id") else None
     except Exception as e:
         result["success"] = False
         result["error"]   = str(e)
@@ -231,16 +231,7 @@ def generate_design_options(project: dict) -> dict:
             provider_key = parts[0].lower() if len(parts) > 1 else ""
             model_id = parts[1] if len(parts) > 1 else model
 
-            # قراءة API keys من .env
-            env_keys = dict(os.environ)
-            try:
-                with open(os.environ.get("CONFIG_FILE","/app/config/models.json").replace("models.json","../../infrastructure/.env")) as _f:
-                    for _line in _f:
-                        _line = _line.strip()
-                        if "=" in _line and not _line.startswith("#"):
-                            _k,_,_v = _line.partition("=")
-                            if _v.strip(): env_keys[_k.strip()] = _v.strip()
-            except: pass
+            env_keys = dict(os.environ)  # مُحقَنة من docker-compose/Infisical
 
             if provider_key == "anthropic":
                 resp = _req.post(
