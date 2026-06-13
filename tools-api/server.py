@@ -4,6 +4,73 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
+
+# قائمة شاملة بموديلات كل مزوّد
+ALL_PROVIDER_MODELS = {
+    "anthropic": {
+        "label": "Anthropic 🟠",
+        "key_env": "ANTHROPIC_API_KEY",
+        "models": [
+            "claude-sonnet-4-5-20251022",
+            "claude-opus-4-5",
+            "claude-haiku-4-5",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-opus-20240229",
+            "claude-3-haiku-20240307",
+        ]
+    },
+    "openai": {
+        "label": "OpenAI 🟢",
+        "key_env": "OPENAI_API_KEY",
+        "models": [
+            "gpt-4o","gpt-4o-mini","o1","o1-mini","o3-mini",
+            "gpt-4-turbo","gpt-4","gpt-3.5-turbo",
+        ]
+    },
+    "openrouter": {
+        "label": "OpenRouter 🔵",
+        "key_env": "OPENROUTER_API_KEY",
+        "models": [
+            "auto",
+            "meta-llama/llama-3.3-70b-instruct",
+            "meta-llama/llama-3.1-405b-instruct",
+            "google/gemini-pro-1.5",
+            "google/gemini-flash-1.5",
+            "deepseek/deepseek-r1",
+            "deepseek/deepseek-v3",
+            "mistralai/mistral-large",
+            "qwen/qwen-2.5-72b-instruct",
+            "cohere/command-r-plus",
+        ]
+    },
+}
+
+def get_available_providers() -> dict:
+    """يرجع المزوّدين اللي عندهم API key"""
+    env_vars = dict(os.environ)
+    for path in ["/opt/ai-company/infrastructure/.env"]:
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if "=" in line and not line.startswith("#"):
+                        k, _, v = line.partition("=")
+                        if v.strip(): env_vars[k.strip()] = v.strip()
+        except: pass
+
+    result = {}
+    for provider, info in ALL_PROVIDER_MODELS.items():
+        key_val = env_vars.get(info["key_env"], "")
+        if len(key_val) > 10:
+            result[provider] = {"label": info["label"], "models": info["models"], "configured": True}
+
+    if not result:
+        result = {k: {"label": v["label"], "models": v["models"], "configured": False}
+                  for k, v in ALL_PROVIDER_MODELS.items()}
+    return result
+
+
 PORT          = int(os.environ.get("PORT", "9000"))
 CONFIG_FILE   = os.environ.get("CONFIG_FILE", "/app/config/models.json")
 
@@ -130,6 +197,9 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
     def do_GET(self):
+        if self.path == "/config/providers":
+            self.json(get_available_providers())
+            return
         if self.path == "/config/models":
             self.json(read_config())
             return

@@ -237,26 +237,21 @@ const MODEL_LABELS = {
   coder:         {ar:"المبرمج (OpenHands)",icon:"💻"},
 };
 
-const PROVIDERS = {
-  "anthropic": {
-    label:"Anthropic 🟠",
-    models:[
-      "claude-sonnet-4-5-20251022",
-      "claude-opus-4-5",
-      "claude-haiku-4-5",
-      "claude-3-5-sonnet-20241022",
-      "claude-3-opus-20240229",
-    ]
-  },
-  "openai": {
-    label:"OpenAI 🟢",
-    models:["gpt-4o","gpt-4o-mini","o1","o3-mini","gpt-4-turbo"]
-  },
-  "openrouter": {
-    label:"OpenRouter 🔵",
-    models:["auto","meta-llama/llama-3.3-70b-instruct","google/gemini-pro-1.5","deepseek/deepseek-r1","mistralai/mistral-large"]
+let PROVIDERS = {};  // تُحمَّل أوتوماتيك من الـ API
+
+async function loadProviders(){
+  try{
+    const r = await fetch(`http://${host}:9000/config/providers`);
+    PROVIDERS = await r.json();
+  }catch(e){
+    // fallback لو الـ API مش متاح
+    PROVIDERS = {
+      "anthropic": {label:"Anthropic 🟠", models:["claude-sonnet-4-5-20251022","claude-3-5-sonnet-20241022","claude-3-opus-20240229"]},
+      "openai":    {label:"OpenAI 🟢",    models:["gpt-4o","gpt-4o-mini","o3-mini"]},
+      "openrouter":{label:"OpenRouter 🔵",models:["auto","deepseek/deepseek-r1","meta-llama/llama-3.3-70b-instruct"]}
+    };
   }
-};
+}
 
 function parseModel(val){
   // format: "provider/model"
@@ -320,7 +315,7 @@ async function saveModels(){
   }catch(e){ alert("خطأ في الحفظ: "+e.message); }
 }
 
-loadModels();
+loadProviders().then(() => loadModels());
 
 setInterval(() => {
   services.forEach(s => checkService(s.port, s.proto));
