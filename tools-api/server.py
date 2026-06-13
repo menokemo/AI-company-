@@ -4,6 +4,18 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
+MOCKUPS_DIR   = os.environ.get("MOCKUPS_DIR", "/app/config/mockups")
+import pathlib, uuid as _uuid
+pathlib.Path(MOCKUPS_DIR).mkdir(parents=True, exist_ok=True)
+
+def save_mockup(html: str, project: str, style: str, mid: int) -> str:
+    """يحفظ الـ mockup ويرجع الـ ID."""
+    mock_id = f"{_uuid.uuid4().hex[:8]}"
+    data = {"id": mock_id, "project": project, "style": style, "num": mid}
+    pathlib.Path(f"{MOCKUPS_DIR}/{mock_id}.html").write_text(html, encoding="utf-8")
+    pathlib.Path(f"{MOCKUPS_DIR}/{mock_id}.json").write_text(
+        json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return mock_id
 
 _providers_cache = {"data": {}, "ts": 0}
 
@@ -92,6 +104,7 @@ def get_available_providers(force_refresh: bool = False) -> dict:
 
 PORT          = int(os.environ.get("PORT", "9000"))
 CONFIG_FILE   = os.environ.get("CONFIG_FILE", "/app/config/models.json")
+HOST_IP       = os.environ.get("HOST_IP", "192.168.2.29")
 
 
 def read_config() -> dict:
@@ -216,6 +229,25 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
     def do_GET(self):
+        if self.path.startswith("/mockups/"):
+            mock_id = self.path.split("/mockups/")[1].rstrip("/")
+            html_file = pathlib.Path(f"{MOCKUPS_DIR}/{mock_id}.html")
+            if html_file.exists():
+                b = html_file.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type","text/html; charset=utf-8")
+                self.send_header("Content-Length", len(b))
+                self.end_headers(); self.wfile.write(b)
+            else:
+                self.json({"error":"mockup not found"},404)
+            return
+        if self.path == "/mockups":
+            files = list(pathlib.Path(MOCKUPS_DIR).glob("*.json"))
+            mocks = []
+            for f in sorted(files, reverse=True)[:20]:
+                try: mocks.append(json.loads(f.read_text()))
+                except: pass
+            self.json({"mockups": mocks}); return
         if self.path.startswith("/config/providers"):
             force = "refresh" in self.path
             self.json(get_available_providers(force_refresh=force))
@@ -230,6 +262,28 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         n = int(self.headers.get("Content-Length",0))
         b = json.loads(self.rfile.read(n)) if n else {}
+        if self.path == "/generate-mockups":
+            # استدعاء crew-service لتوليد ٣ تصميمات
+            try:
+                body2 = json.dumps(b).encode()
+                req2 = urllib.request.Request(f"{CREW_URL}/design-options",data=body2,method="POST")
+                req2.add_header("Content-Type","application/json")
+                with urllib.request.urlopen(req2, timeout=180) as r2:
+                    result = json.load(r2)
+                # حفظ الـ mockups
+                host_ip = os.environ.get("HOST_IP","192.168.2.29")
+                saved = []
+                for m in result.get("mockups",[]):
+                    mid = save_mockup(m["html"], b.get("name",""), m["style"], m["id"])
+                    saved.append({
+                        "id": m["id"], "mock_id": mid,
+                        "style": m.get("style_ar", m["style"]),
+                        "url": f"http://{host_ip}:9000/mockups/{mid}",
+                    })
+                self.json({"success":True,"mockups":saved,"project":b.get("name","")})
+            except Exception as e:
+                self.json({"success":False,"error":str(e)})
+            return
         if self.path == "/config/models":
             if write_config(b):
                 self.json({"success": True, "config": read_config()})

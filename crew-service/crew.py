@@ -177,9 +177,70 @@ th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;
     def do_POST(self):
         n    = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(n)) if n else {}
-        if   self.path == "/run-pipeline": self.json_resp(full_pipeline(body))
-        elif self.path == "/create-pr":    self.json_resp(create_pr(body.get("repo_full_name",""), body.get("branch",""), body.get("title","feat: project"), body.get("body","")))
-        else:                              self.json_resp({"error": "not found"}, 404)
+        if   self.path == "/run-pipeline":    self.json_resp(full_pipeline(body))
+        elif self.path == "/create-pr":       self.json_resp(create_pr(body.get("repo_full_name",""), body.get("branch",""), body.get("title","feat: project"), body.get("body","")))
+        elif self.path == "/design-options":  self.json_resp(generate_design_options(body))
+        else:                                 self.json_resp({"error": "not found"}, 404)
+
+
+def generate_design_options(project: dict) -> dict:
+    """يولّد ٣ تصميمات HTML مختلفة للمشروع."""
+    import requests as _req
+    name        = project.get("name","مشروع")
+    description = project.get("description","")
+    requirements= project.get("requirements","")
+
+    LITELLM_URL = os.environ.get("LITELLM_BASE_URL","http://ai-litellm:4000")
+    LITELLM_KEY = os.environ.get("LITELLM_API_KEY","")
+
+    try:
+        cfg = {}
+        with open(os.environ.get("CONFIG_FILE","/app/config/models.json")) as f:
+            import json as _j; cfg = _j.load(f)
+    except: pass
+    model = cfg.get("designer","claude")
+
+    styles = [
+        ("modern",       "عصري ونظيف — ألوان هادئة، whitespace واسع، typography واضح"),
+        ("vibrant",      "حيوي وملوّن — gradient جريء، بطاقات مميزة، ألوان زاهية"),
+        ("professional", "احترافي ومؤسسي — sidebar navigation، جداول، dashboard كامل"),
+    ]
+
+    mockups = []
+    for i, (style_key, style_desc) in enumerate(styles, 1):
+        prompt = f"""أنت مصمم UI/UX محترف. اصنع mockup HTML كامل وجميل لمشروع:
+
+الاسم: {name}
+الوصف: {description}
+المتطلبات: {requirements}
+أسلوب التصميم: {style_desc}
+
+المطلوب:
+- صفحة HTML واحدة كاملة مع CSS مدمج
+- تصميم {style_desc}
+- واجهة تفاعلية تعرض على الأقل ٢-٣ شاشات أو أقسام
+- محتوى واقعي ومناسب للمشروع (مش lorem ipsum)
+- responsive design
+- اجعله جميلاً ومثيراً للإعجاب
+
+أرجع HTML فقط بدون أي شرح."""
+
+        try:
+            resp = _req.post(
+                f"{LITELLM_URL}/v1/chat/completions",
+                headers={{"Authorization": f"Bearer {LITELLM_KEY}", "Content-Type": "application/json"}},
+                json={{"model": model, "messages": [{{"role":"user","content":prompt}}], "max_tokens": 4000}},
+                timeout=120,
+            )
+            html = resp.json()["choices"][0]["message"]["content"]
+            # تنظيف الـ markdown
+            if "```html" in html: html = html.split("```html")[1].split("```")[0].strip()
+            elif "```" in html: html = html.split("```")[1].split("```")[0].strip()
+            mockups.append({{"id": i, "style": style_key, "style_ar": style_desc.split("—")[0].strip(), "html": html}})
+        except Exception as e:
+            mockups.append({{"id": i, "style": style_key, "html": f"<h1>خطأ: {e}</h1>"}})
+
+    return {{"success": True, "mockups": mockups, "project": name}}
 
 
 if __name__ == "__main__":
