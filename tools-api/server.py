@@ -54,6 +54,7 @@ def start_coding(full_name, task):
             "content": [{"type": "text", "text": msg}]
         },
         "selected_repository": full_name,
+        "llm_model": "openai/claude",
     }
     try:
         body = json.dumps(payload).encode()
