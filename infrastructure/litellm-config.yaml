@@ -1,0 +1,46 @@
+# بوابة النماذج LiteLLM — متعدّدة المزوّدين
+# المفاتيح تُقرأ من متغيّرات البيئة (مُحقَنة من Infisical).
+
+model_list:
+  # ===== Anthropic — alias سريع =====
+  - model_name: claude
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ===== Anthropic — كل الموديلات =====
+  - model_name: "anthropic/*"
+    litellm_params:
+      model: "anthropic/*"
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ===== OpenAI — alias سريع =====
+  - model_name: gpt
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ===== OpenAI — كل الموديلات =====
+  - model_name: "openai/*"
+    litellm_params:
+      model: "openai/*"
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ===== OpenRouter — alias سريع =====
+  - model_name: openrouter-auto
+    litellm_params:
+      model: openrouter/auto
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # ===== OpenRouter — كل الموديلات =====
+  - model_name: "openrouter/*"
+    litellm_params:
+      model: "openrouter/*"
+      api_key: os.environ/OPENROUTER_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 600
