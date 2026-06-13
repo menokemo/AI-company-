@@ -13,6 +13,29 @@
 
 ---
 
+## [0.24.0] — OpenHands يعمل ✅ (بعد 3 أيام!)
+
+### الحل النهائي
+- **المشكلة الجذرية:** OpenHands غيّر معمارتها بالكامل (V0→V1 نوفمبر 2025). الـ image القديم (`all-hands-ai`) لم يعد يعمل.
+- **الحل:** `ghcr.io/openhands/openhands:latest` + `ghcr.io/openhands/agent-server:1.25.0-python`.
+- **إعداد LLM:** `model=openai/claude`, `base_url=http://HOST_IP:4000` (لا `ai-litellm` لأن agent-server خارج الـ Docker network).
+- **الإعداد عبر Settings UI** — لا env vars — هي الطريقة الوحيدة المدعومة في V1.
+
+### تحديث الملفات
+- `docker-compose.yml`: OpenHands V1 بدون SANDBOX_RUNTIME_CONTAINER_IMAGE.
+- `generate-openhands-config.py`: يولّد `config.toml` بـ `openai/claude` + IP الـ VM تلقائياً.
+- `install.sh`: يحمّل agent-server image مسبقاً + يجهّز المجلدات.
+
+### ملاحظة مهمة بعد التثبيت
+بعد أول تشغيل: افتح OpenHands (:3000) → Settings → LLM → أضف profile جديد:
+- Name: litellm
+- Custom Model: openai/claude
+- Base URL: http://VM_IP:4000
+- API Key: LITELLM_MASTER_KEY
+ثم Save Changes. هذا الإعداد يُحفظ تلقائياً في كل المحادثات التالية.
+
+---
+
 ## [0.23.0] — code-writer يستبدل OpenHands للكتابة التلقائية
 
 ### قرار

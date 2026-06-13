@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 """
-يولّد ملف settings.json لـ OpenHands تلقائياً من .env.
+يولّد ملفات إعداد OpenHands تلقائياً من .env بعد كل sync.
 يُشغَّل بعد مزامنة Infisical مباشرةً.
 """
-import os, json, pathlib, stat
+import os, json, pathlib, subprocess
 
-STATE_DIR = os.environ.get(
-    "OPENHANDS_STATE_DIR",
-    "/opt/ai-company/data/openhands-state"
-)
-ENV_FILE = os.environ.get(
-    "ENV_FILE",
-    "/opt/ai-company/infrastructure/.env"
-)
+STATE_DIR = os.environ.get("OPENHANDS_STATE_DIR", "/opt/ai-company/data/openhands")
+ENV_FILE  = os.environ.get("ENV_FILE", "/opt/ai-company/infrastructure/.env")
 
 # ── قراءة .env ──────────────────────────────────────────────────────
 env = {}
@@ -23,69 +17,59 @@ with open(ENV_FILE, encoding="utf-8") as f:
             k, _, v = line.partition("=")
             env[k.strip()] = v.strip()
 
-# ── بناء الإعدادات ───────────────────────────────────────────────────
-settings = {
-    "llm_model":      "openai/claude",
-    "llm_base_url":   "http://ai-litellm:4000",
-    "llm_api_key":    env.get("LITELLM_MASTER_KEY", ""),
-    "github_token":   env.get("GITHUB_TOKEN", ""),
-    "git_username":   env.get("GIT_USERNAME", ""),
-    "agent":          "CodeActAgent",
-    "language":       "en",
-}
-
-# إزالة القيم الفارغة
-settings = {k: v for k, v in settings.items() if v}
-
-# ── كتابة الملف ──────────────────────────────────────────────────────
-out_dir  = pathlib.Path(STATE_DIR)
-out_dir.mkdir(parents=True, exist_ok=True)
-out_file = out_dir / "settings.json"
-
-out_file.write_text(
-    json.dumps(settings, ensure_ascii=False, indent=2),
-    encoding="utf-8"
-)
-
-# ملكية uid 1000 عشان OpenHands يقدر يقراه
+# ── اكتشاف IP الـ VM ──────────────────────────────────────────────
 try:
-    os.chown(out_file, 1000, 1000)
-    os.chown(out_dir,  1000, 1000)
-except PermissionError:
-    pass  # لو مش root، ده طبيعي
+    host_ip = subprocess.check_output(
+        ["hostname", "-I"], text=True
+    ).split()[0]
+except Exception:
+    host_ip = "192.168.2.29"
 
+master_key  = env.get("LITELLM_MASTER_KEY", "")
+github_token = env.get("GITHUB_TOKEN", "")
+git_username = env.get("GIT_USERNAME", "")
 
-# ── كتابة git credentials لاستخدامها داخل OpenHands ─────────────────
-git_token    = env.get("GITHUB_TOKEN", "")
-git_username = env.get("GIT_USERNAME", "menokemo")
-git_email    = env.get("GIT_EMAIL", f"{git_username}@users.noreply.github.com")
+# ── config.toml لـ OpenHands V1 ──────────────────────────────────
+out_dir = pathlib.Path(STATE_DIR)
+out_dir.mkdir(parents=True, exist_ok=True)
 
-if git_token:
-    # credentials store
-    creds_file = out_dir / ".git-credentials"
-    creds_file.write_text(
-        f"https://{git_username}:{git_token}@github.com\n",
+config_toml = out_dir / "config.toml"
+config_toml.write_text(f"""[llm]
+model = "openai/claude"
+base_url = "http://{host_ip}:4000"
+api_key = "{master_key}"
+
+[core]
+workspace_base = "/opt/workspace"
+""", encoding="utf-8")
+
+# ── git credentials ───────────────────────────────────────────────
+if github_token:
+    git_email = f"{git_username}@users.noreply.github.com"
+    creds = out_dir / ".git-credentials"
+    creds.write_text(
+        f"https://{git_username}:{github_token}@github.com\n",
         encoding="utf-8"
     )
-    try:
-        os.chown(creds_file, 1000, 1000)
-    except PermissionError:
-        pass
-
-    # .gitconfig
     gitconfig = out_dir / ".gitconfig"
     gitconfig.write_text(
         f"[user]\n\tname = {git_username}\n\temail = {git_email}\n"
-        f"[credential]\n\thelper = store --file /.openhands-state/.git-credentials\n",
+        f"[credential]\n\thelper = store --file /.openhands/.git-credentials\n",
         encoding="utf-8"
     )
     try:
+        os.chown(creds,    1000, 1000)
         os.chown(gitconfig, 1000, 1000)
     except PermissionError:
         pass
 
-    print(f"  Git credentials → {creds_file}")
+try:
+    os.chown(config_toml, 1000, 1000)
+    os.chown(out_dir, 1000, 1000)
+except PermissionError:
+    pass
 
-print(f"✓ OpenHands settings → {out_file}")
-keys_set = [k for k in settings if k != "agent" and k != "language"]
-print(f"  المفاتيح المُعيَّنة: {', '.join(keys_set)}")
+print(f"✓ OpenHands config → {config_toml}")
+print(f"  LLM: openai/claude @ http://{host_ip}:4000")
+if github_token:
+    print(f"  Git: {git_username}")

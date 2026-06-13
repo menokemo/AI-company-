@@ -93,39 +93,6 @@ services:
       - ai-company-net
     mem_limit: 1g
 
-  openhands:
-    image: ghcr.io/all-hands-ai/openhands:0.38
-    container_name: ai-openhands
-    restart: unless-stopped
-    depends_on:
-      litellm:
-        condition: service_started
-    environment:
-      - WORKSPACE_BASE=/opt/workspace
-      - WORKSPACE_MOUNT_PATH=/opt/workspace
-      # LLM عبر LiteLLM Gateway (بيقرأ من .env)
-      - LLM_BASE_URL=http://ai-litellm:4000
-      - LLM_API_KEY=${LITELLM_MASTER_KEY}
-      - LLM_MODEL=openai/claude
-      - LLM_NUM_RETRIES=3
-      # Git (بيقرأ من .env بعد sync من Infisical)
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
-      - GIT_USERNAME=${GIT_USERNAME:-}
-      # Sandbox
-      - SANDBOX_CONTAINER_NETWORK=ai-company_ai-company-net
-      - SANDBOX_USER_ID=1000
-      - SANDBOX_RUNTIME_CONTAINER_IMAGE=nikolaik/python-nodejs:python3.12-nodejs22
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - openhands_workspace:/opt/workspace
-      - /opt/ai-company/data/openhands-state:/.openhands-state
-    ports:
-      - "3000:3000"
-    networks:
-      - ai-company-net
-    mem_limit: 4g
-
-  # لوحة التحكم الموحّدة
   start-page:
     image: nginx:alpine
     container_name: ai-start-page
@@ -195,3 +162,24 @@ services:
     networks:
       - ai-company-net
     mem_limit: 256m
+
+  # OpenHands V1 — مبرمج الذكاء الاصطناعي
+  openhands:
+    image: ghcr.io/openhands/openhands:latest
+    container_name: ai-openhands
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - AGENT_SERVER_IMAGE_REPOSITORY=ghcr.io/openhands/agent-server
+      - AGENT_SERVER_IMAGE_TAG=1.25.0-python
+      - WORKSPACE_MOUNT_PATH=/opt/workspace
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/ai-company/data/openhands:/.openhands
+      - /opt/ai-company/data/workspace:/opt/workspace
+    ports:
+      - "3000:3000"
+    networks:
+      - ai-company-net
+    mem_limit: 4g

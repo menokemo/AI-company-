@@ -96,10 +96,13 @@ log "تم إعداد cron job."
 
 log "تنزيل الصور..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
-log "تجهيز مساحة عمل OpenHands..."
-mkdir -p /opt/ai-company/data/openhands-state
-chown -R 1000:1000 /opt/ai-company/data/openhands-state
-chmod 755 /opt/ai-company/data/openhands-state
+log "تجهيز مساحة عمل OpenHands V1..."
+mkdir -p /opt/ai-company/data/openhands
+mkdir -p /opt/ai-company/data/workspace
+chown -R 1000:1000 /opt/ai-company/data/openhands
+chmod 755 /opt/ai-company/data/openhands
+log "تحميل agent-server image مسبقاً..."
+docker pull ghcr.io/openhands/agent-server:1.25.0-python || true
 
 log "تشغيل الخدمات..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
