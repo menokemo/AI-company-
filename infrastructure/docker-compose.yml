@@ -174,6 +174,10 @@ services:
       - AGENT_SERVER_IMAGE_REPOSITORY=ghcr.io/openhands/agent-server
       - AGENT_SERVER_IMAGE_TAG=1.25.0-python
       - WORKSPACE_MOUNT_PATH=/opt/workspace
+      # GitHub credentials — تيجي أوتوماتيك من Infisical عبر .env
+      - SANDBOX_ENV_GITHUB_TOKEN=${GITHUB_TOKEN}
+      - SANDBOX_ENV_GIT_USERNAME=${GIT_USERNAME}
+      - SANDBOX_ENV_GIT_EMAIL=${GIT_USERNAME}@users.noreply.github.com
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/ai-company/data/openhands:/.openhands

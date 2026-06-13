@@ -13,6 +13,16 @@
 
 ---
 
+## [0.25.0] — GitHub push أوتوماتيك من Infisical
+
+### المشكلة
+agent-server كان يكتب الكود لكن لا يدفعه لـ GitHub (لا credentials).
+
+### الحل
+إضافة `SANDBOX_ENV_GITHUB_TOKEN` و `SANDBOX_ENV_GIT_USERNAME` في docker-compose.yml — تُقرأ من `.env` (المتزامن مع Infisical) وتُمرَّر لكل agent-server تلقائياً.
+
+---
+
 ## [0.24.0] — OpenHands يعمل ✅ (بعد 3 أيام!)
 
 ### الحل النهائي
