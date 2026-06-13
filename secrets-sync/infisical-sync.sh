@@ -72,4 +72,28 @@ log "إعادة تشغيل OpenHands بالإعدادات الجديدة..."
 docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
   --env-file "$ENV_FILE" up -d openhands
 
+# ─── ربط GitHub بـ OpenHands أوتوماتيك ─────────────────────────────────────
+setup_openhands_github() {
+    local token="$1" username="$2" oh_url="${3:-http://localhost:3000}"
+    log "ربط GitHub بـ OpenHands..."
+    local resp
+    resp=$(curl -sf -X POST "$oh_url/api/v1/secrets/git-providers" \
+        -H "Content-Type: application/json" \
+        -d "{\"provider_tokens\": {\"github\": {\"token\": \"$token\", \"user_id\": \"$username\", \"host\": \"github.com\"}}}" \
+        2>/dev/null)
+    if echo "$resp" | grep -q "stored"; then
+        log "✓ GitHub متصل بـ OpenHands"
+    else
+        warn "تحذير: ربط GitHub بـ OpenHands: $resp"
+    fi
+}
+
 log "تم الربط. لإعادة المزامنة بعد أي تعديل في Infisical، شغّل نفس الأمر."
+
+# ربط GitHub بـ OpenHands
+gh_token=$(grep "^GITHUB_TOKEN=" "$ENV_FILE" | cut -d= -f2-)
+gh_user=$(grep "^GIT_USERNAME=" "$ENV_FILE" | cut -d= -f2-)
+if [ -n "$gh_token" ] && [ -n "$gh_user" ]; then
+    sleep 5  # انتظار OpenHands يشتغل
+    setup_openhands_github "$gh_token" "$gh_user"
+fi
