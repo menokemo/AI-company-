@@ -3,6 +3,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
+CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
 PORT          = int(os.environ.get("PORT", "9000"))
 
 
@@ -122,7 +123,7 @@ class H(BaseHTTPRequestHandler):
         elif self.path == "/create-and-start":
             r = create_repo(b.get("name","project"), b.get("description",""))
             if not r.get("success"): self.json(r); return
-            c = start_coding(r.get("full_name",""), b.get("task",""))
+            c = start_coding(r.get("full_name",""), b.get("task",""), b.get("description",""), b.get("document_content",""))
             self.json({**r, "coding": c})
         else:
             self.json({"error":"not found"}, 404)

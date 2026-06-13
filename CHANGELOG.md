@@ -13,6 +13,32 @@
 
 ---
 
+## [0.27.0] — إضافة CrewAI Pipeline متكامل
+
+### الموظفون الجدد (6 agents)
+كل موظف له موديل مستقل يُعدَّل من Infisical:
+- 📄 **محلل نصوص** (`AGENT_DOC_ANALYZER_MODEL`) — يستخرج البنية الهرمية من أي مستند
+- 🔍 **باحث** (`AGENT_RESEARCHER_MODEL`) — best practices + tech stack
+- 🎨 **مصمم** (`AGENT_DESIGNER_MODEL`) — هيكل المشروع + UI/UX
+- 📋 **مخطط** (`AGENT_PLANNER_MODEL`) — خطة تقنية مفصّلة للتنفيذ
+- 🔧 **حلّال مشاكل** (`AGENT_SOLVER_MODEL`) — يراجع الخطة ويحل التعارضات
+- 👁️ **مراجع** (`AGENT_REVIEWER_MODEL`) — جودة + أمان + معايير القبول
+
+### Pipeline التسلسلي
+doc_analyzer → researcher → designer → planner → problem_solver → reviewer → OpenHands
+
+### ملفات جديدة
+- `crew-service/crew.py` — HTTP service + pipeline runner
+- `crew-service/agents.py` — تعريف الموظفين
+- `crew-service/tasks.py` — تعريف المهام والـ context flow
+- `crew-service/Dockerfile`
+
+### تحديثات
+- `docker-compose.yml`: crew-service على بورت 9002
+- `tools-api/server.py`: يستدعي crew-service بدلاً من OpenHands مباشرة
+
+---
+
 ## [0.26.0] — المنظومة تعمل بالكامل ✅
 
 ### المنجزات

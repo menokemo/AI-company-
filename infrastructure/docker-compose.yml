@@ -187,3 +187,27 @@ services:
     networks:
       - ai-company-net
     mem_limit: 4g
+
+  # ── CrewAI Pipeline ─────────────────────────────────────────────────────
+  crew-service:
+    build:
+      context: ../crew-service
+      dockerfile: Dockerfile
+    container_name: ai-crew
+    restart: unless-stopped
+    environment:
+      - PORT=9002
+      - LITELLM_BASE_URL=http://ai-litellm:4000
+      - LITELLM_API_KEY=${LITELLM_MASTER_KEY}
+      - OPENHANDS_URL=http://ai-openhands:3000
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      # ── موديل كل موظف — يُعدَّل من Infisical بسهولة ──
+      - AGENT_DOC_ANALYZER_MODEL=${AGENT_DOC_ANALYZER_MODEL:-claude}
+      - AGENT_RESEARCHER_MODEL=${AGENT_RESEARCHER_MODEL:-claude}
+      - AGENT_DESIGNER_MODEL=${AGENT_DESIGNER_MODEL:-claude}
+      - AGENT_PLANNER_MODEL=${AGENT_PLANNER_MODEL:-gpt}
+      - AGENT_SOLVER_MODEL=${AGENT_SOLVER_MODEL:-claude}
+      - AGENT_REVIEWER_MODEL=${AGENT_REVIEWER_MODEL:-openrouter-auto}
+    networks:
+      - ai-company-net
+    mem_limit: 2g
