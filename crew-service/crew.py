@@ -161,13 +161,14 @@ th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;
             self.wfile.write(b)
             return
         if self.path == "/health":
+            import json as _j
+            try:
+                cfg = _j.load(open(os.environ.get("CONFIG_FILE","/app/config/models.json")))
+            except: cfg = {}
             self.json_resp({
                 "status": "ok",
                 "agents": ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"],
-                "models": {
-                    a: os.environ.get(f"AGENT_{a.upper()}_MODEL", "claude")
-                    for a in ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"]
-                },
+                "models": {a: cfg.get(a,"claude") for a in ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"]},
                 "openhands": OPENHANDS_URL,
             })
         else:

@@ -210,6 +210,8 @@ services:
       - AGENT_REVIEWER_MODEL=${AGENT_REVIEWER_MODEL:-openrouter-auto}
     ports:
       - "9002:9002"
+    volumes:
+      - /opt/ai-company/config:/app/config
     networks:
       - ai-company-net
     mem_limit: 2g

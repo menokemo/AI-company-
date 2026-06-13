@@ -1,0 +1,11 @@
+{
+  "_comment": "موديل كل مكوّن في المنظومة — يُعدَّل من لوحة التحكم",
+  "manager":       "claude",
+  "doc_analyzer":  "claude",
+  "researcher":    "claude",
+  "designer":      "claude",
+  "planner":       "gpt",
+  "problem_solver":"claude",
+  "reviewer":      "openrouter-auto",
+  "coder":         "claude"
+}

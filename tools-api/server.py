@@ -5,6 +5,27 @@ GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
 PORT          = int(os.environ.get("PORT", "9000"))
+CONFIG_FILE   = os.environ.get("CONFIG_FILE", "/app/config/models.json")
+
+
+def read_config() -> dict:
+    try:
+        with open(CONFIG_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def write_config(data: dict) -> bool:
+    try:
+        # احتفظ بـ _comment
+        existing = read_config()
+        existing.update({k: v for k, v in data.items() if not k.startswith("_")})
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("write_config error:", e)
+        return False
 
 
 def get_username():
@@ -109,6 +130,9 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
     def do_GET(self):
+        if self.path == "/config/models":
+            self.json(read_config())
+            return
         if self.path == "/health":
             self.json({"status":"ok","github":bool(GITHUB_TOKEN),"user":get_username(),"openhands_api":"v1"})
         else:
@@ -116,6 +140,21 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         n = int(self.headers.get("Content-Length",0))
         b = json.loads(self.rfile.read(n)) if n else {}
+        if self.path == "/config/models":
+            if write_config(b):
+                self.json({"success": True, "config": read_config()})
+            else:
+                self.json({"success": False, "error": "فشل الحفظ"}, 500)
+            return
+        if self.path == "/config/restart":
+            svc = b.get("service", "")
+            import subprocess
+            try:
+                subprocess.run(["docker","restart",f"ai-{svc}"], timeout=10, check=True, capture_output=True)
+                self.json({"success": True, "message": f"تمت إعادة تشغيل {svc}"})
+            except Exception as e:
+                self.json({"success": False, "error": str(e)})
+            return
         if self.path == "/create-repo":
             self.json(create_repo(b.get("name","project"), b.get("description","")))
         elif self.path == "/start-coding":
