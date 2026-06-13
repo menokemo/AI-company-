@@ -46,14 +46,24 @@ def create_repo(name, description=""):
 
 def start_coding(full_name, task):
     """إرسال مهمة لـ OpenHands V1 API"""
-    msg = (f"Repository: https://github.com/{full_name}\n\n"
-           f"Clone this repository and complete the following task, "
-           f"then git add, commit, and push your changes:\n\n{task}")
+    msg = (
+        f"Work on this GitHub repository: {full_name}\n\n"
+        f"The repository is already cloned in your workspace. "
+        f"Complete the following task, then commit and push:\n\n"
+        f"{task}\n\n"
+        f"After completing the task:\n"
+        f"1. git add -A\n"
+        f"2. git commit -m \"feat: complete task\"\n"
+        f"3. git push origin main\n"
+        f"If push fails due to auth, configure: "
+        f"git remote set-url origin https://$GITHUB_TOKEN@github.com/{full_name}.git"
+    )
     payload = {
         "initial_message": {
             "content": [{"type": "text", "text": msg}]
         },
         "selected_repository": full_name,
+        "git_provider": "github",
         "llm_model": "openai/claude",
     }
     try:
