@@ -93,6 +93,35 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(b)
 
     def do_GET(self):
+        if self.path == "/" or self.path == "/status":
+            import os
+            agents_models = {
+                a: os.environ.get(f"AGENT_{a.upper()}_MODEL", "claude")
+                for a in ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"]
+            }
+            icons = {"doc_analyzer":"📄","researcher":"🔍","designer":"🎨","planner":"📋","problem_solver":"🔧","reviewer":"👁️"}
+            arabic = {"doc_analyzer":"محلل نصوص","researcher":"باحث","designer":"مصمم","planner":"مخطط","problem_solver":"حلّال مشاكل","reviewer":"مراجع"}
+            rows = "".join(f'<tr><td>{icons[a]} {arabic[a]}</td><td><code>{m}</code></td></tr>' for a,m in agents_models.items())
+            html = f"""<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">
+<title>Crew Pipeline</title>
+<style>body{{font-family:Arial,sans-serif;background:#0d1117;color:#e6edf3;padding:30px;}}
+h1{{color:#6c8fff;}}table{{width:100%;border-collapse:collapse;margin-top:20px;}}
+th,td{{padding:12px;border:1px solid #30363d;text-align:right;}}
+th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;border-radius:4px;}}
+.ok{{color:#3fb950;font-weight:bold;}}</style></head>
+<body><h1>👥 Crew Pipeline</h1>
+<p class="ok">● شغّال</p>
+<h3>الموظفون والموديلات</h3>
+<table><tr><th>الموظف</th><th>الموديل</th></tr>{rows}</table>
+<p style="color:#8b949e;margin-top:20px;font-size:13px;">Pipeline تسلسلي — 6 agents — LiteLLM</p>
+</body></html>"""
+            b = html.encode()
+            self.send_response(200)
+            self.send_header("Content-Type","text/html; charset=utf-8")
+            self.send_header("Content-Length", len(b))
+            self.end_headers()
+            self.wfile.write(b)
+            return
         if self.path == "/health":
             self.json_resp({
                 "status": "ok",
