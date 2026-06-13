@@ -1,5 +1,5 @@
+setuptools>=70.0.0
 crewai==0.80.0
-crewai-tools==0.14.0
 litellm==1.52.0
 requests==2.32.3
 PyPDF2==3.0.1
