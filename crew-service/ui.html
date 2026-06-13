@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew Pipeline — لوحة التحكم</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#6c8fff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--muted:#8b949e;--text:#e6edf3;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:12px;}
+header h1{font-size:20px;font-weight:700;}
+header .badge{background:rgba(63,185,80,.15);color:var(--green);border:1px solid var(--green);border-radius:20px;padding:2px 12px;font-size:12px;}
+.container{max-width:1100px;margin:0 auto;padding:24px;}
+h2{font-size:16px;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;}
+/* ── Agents Grid ── */
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:32px;}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s;}
+.agent-card:hover{border-color:var(--accent);}
+.agent-icon{font-size:28px;margin-bottom:8px;}
+.agent-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.agent-model{font-size:11px;color:var(--accent);background:rgba(108,143,255,.1);padding:2px 8px;border-radius:20px;display:inline-block;}
+.agent-status{margin-top:8px;font-size:11px;color:var(--muted);}
+.agent-card.active{border-color:var(--yellow);background:rgba(210,153,34,.05);}
+.agent-card.done{border-color:var(--green);background:rgba(63,185,80,.05);}
+/* ── Pipeline Run ── */
+.run-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;}
+.run-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.progress-bar{background:var(--border);border-radius:4px;height:6px;overflow:hidden;margin-bottom:16px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .5s;border-radius:4px;}
+.stages{display:flex;gap:6px;flex-wrap:wrap;}
+.stage{padding:4px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);color:var(--muted);}
+.stage.done{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.1);}
+.stage.active{border-color:var(--yellow);color:var(--yellow);background:rgba(210,153,34,.1);animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* ── History ── */
+.history-table{width:100%;border-collapse:collapse;}
+.history-table th,.history-table td{padding:10px 14px;border-bottom:1px solid var(--border);text-align:right;font-size:13px;}
+.history-table th{color:var(--muted);font-weight:600;}
+.status-ok{color:var(--green);}
+.status-err{color:var(--red);}
+/* ── Config Panel ── */
+.config-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;}
+.config-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
+.config-row:last-child{border-bottom:none;}
+.config-label{flex:1;font-size:14px;}
+.config-select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;}
+.btn{background:var(--accent);color:white;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:14px;}
+.btn:hover{opacity:.85;}
+.btn-sm{padding:4px 12px;font-size:12px;}
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:24px">👥</span>
+  <h1>Crew Pipeline</h1>
+  <span class="badge" id="status-badge">جاري التحميل...</span>
+  <span style="margin-right:auto;font-size:12px;color:var(--muted)" id="clock"></span>
+</header>
+
+<div class="container">
+
+  <!-- الموظفون -->
+  <h2>الموظفون</h2>
+  <div class="agents" id="agents-grid"></div>
+
+  <!-- Pipeline جارٍ -->
+  <div class="run-box" id="run-box" style="display:none">
+    <div class="run-header">
+      <strong id="run-name">جاري...</strong>
+      <span id="run-pct" style="color:var(--accent);font-weight:700">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="stages" id="stages-row"></div>
+  </div>
+
+  <!-- إعدادات الموديلات -->
+  <h2>إعدادات الموديلات</h2>
+  <div class="config-panel">
+    <div id="config-rows"></div>
+    <div style="margin-top:12px;text-align:left">
+      <button class="btn btn-sm" onclick="saveModels()">💾 حفظ (يتطلب restart)</button>
+    </div>
+  </div>
+
+  <!-- سجل التشغيل -->
+  <h2>سجل Pipeline</h2>
+  <div class="run-box">
+    <table class="history-table">
+      <thead><tr><th>المشروع</th><th>المراحل</th><th>المدة</th><th>الحالة</th><th>الوقت</th></tr></thead>
+      <tbody id="history-body"><tr><td colspan="5" style="text-align:center;color:var(--muted)">لا يوجد سجل بعد</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const AGENTS = [
+  {key:"doc_analyzer", icon:"📄", name:"محلل نصوص"},
+  {key:"researcher",   icon:"🔍", name:"باحث"},
+  {key:"designer",     icon:"🎨", name:"مصمم"},
+  {key:"planner",      icon:"📋", name:"مخطط"},
+  {key:"problem_solver",icon:"🔧",name:"حلّال مشاكل"},
+  {key:"reviewer",     icon:"👁️", name:"مراجع"},
+];
+const MODELS = ["claude","gpt","openrouter-auto","claude-opus","gpt-4o"];
+let health = {}, history = [], running = null;
+
+function updateClock(){
+  const n=new Date();
+  document.getElementById("clock").textContent=
+    n.toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+}
+
+async function fetchHealth(){
+  try{
+    const r=await fetch("/health");
+    health=await r.json();
+    document.getElementById("status-badge").textContent="● شغّال";
+    document.getElementById("status-badge").style.color="var(--green)";
+    renderAgents();
+    renderConfig();
+  }catch(e){
+    document.getElementById("status-badge").textContent="● متوقف";
+    document.getElementById("status-badge").style.color="var(--red)";
+  }
+}
+
+function renderAgents(){
+  const g=document.getElementById("agents-grid"); g.innerHTML="";
+  AGENTS.forEach(a=>{
+    const m=(health.models||{})[a.key]||"claude";
+    const isActive=running&&running.current===a.key;
+    const isDone=running&&running.done&&running.done.includes(a.key);
+    const d=document.createElement("div");
+    d.className="agent-card"+(isActive?" active":isDone?" done":"");
+    d.innerHTML=`<div class="agent-icon">${a.icon}</div>
+    <div class="agent-name">${a.name}</div>
+    <div class="agent-model">${m}</div>
+    <div class="agent-status">${isActive?"⏳ يعمل الآن":isDone?"✅ اكتمل":"⬜ منتظر"}</div>`;
+    g.appendChild(d);
+  });
+}
+
+function renderConfig(){
+  const c=document.getElementById("config-rows"); c.innerHTML="";
+  AGENTS.forEach(a=>{
+    const m=(health.models||{})[a.key]||"claude";
+    const row=document.createElement("div"); row.className="config-row";
+    row.innerHTML=`<span class="config-label">${a.icon} ${a.name}</span>
+    <select class="config-select" id="sel-${a.key}">
+      ${MODELS.map(x=>`<option${x===m?" selected":""}>${x}</option>`).join("")}
+    </select>`;
+    c.appendChild(row);
+  });
+}
+
+async function fetchStatus(){
+  try{
+    const r=await fetch("/run-status");
+    const d=await r.json();
+    if(d.running){
+      running={current:d.current,done:d.done||[]};
+      const pct=Math.round((running.done.length/AGENTS.length)*100);
+      document.getElementById("run-box").style.display="block";
+      document.getElementById("run-name").textContent=d.project||"جاري...";
+      document.getElementById("run-pct").textContent=pct+"%";
+      document.getElementById("progress-fill").style.width=pct+"%";
+      const sr=document.getElementById("stages-row"); sr.innerHTML="";
+      AGENTS.forEach(a=>{
+        const s=document.createElement("span");
+        s.className="stage"+(a.key===d.current?" active":running.done.includes(a.key)?" done":"");
+        s.textContent=a.name; sr.appendChild(s);
+      });
+    }else{
+      running=null;
+      document.getElementById("run-box").style.display="none";
+    }
+    if(d.history) renderHistory(d.history);
+    renderAgents();
+  }catch(e){}
+}
+
+function renderHistory(h){
+  const b=document.getElementById("history-body");
+  if(!h.length){b.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">لا يوجد سجل بعد</td></tr>';return;}
+  b.innerHTML=h.slice(-10).reverse().map(r=>`
+  <tr>
+    <td>${r.project||"-"}</td>
+    <td>${Object.keys(r.stages||{}).filter(k=>k!=="openhands"&&k!=="__crew_ok").length} مراحل</td>
+    <td>${r.duration_s||"?"}s</td>
+    <td class="${r.success?"status-ok":"status-err"}">${r.success?"✅ نجح":"❌ فشل"}</td>
+    <td style="color:var(--muted)">${r.time||""}</td>
+  </tr>`).join("");
+}
+
+function saveModels(){
+  const note=AGENTS.map(a=>`${a.key}: ${document.getElementById("sel-"+a.key).value}`).join("\n");
+  alert("لتغيير الموديلات، أضف هذه المتغيرات في Infisical ثم افعل sync:\n\n"+
+    AGENTS.map(a=>`AGENT_${a.key.toUpperCase()}_MODEL=${document.getElementById("sel-"+a.key).value}`).join("\n"));
+}
+
+setInterval(updateClock,1000); updateClock();
+setInterval(fetchStatus,3000); fetchStatus();
+fetchHealth();
+</script>
+</body>
+</html>

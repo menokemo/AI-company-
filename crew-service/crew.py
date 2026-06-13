@@ -6,6 +6,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pipeline import run_pipeline
 
 PORT          = int(os.environ.get("PORT", "9002"))
+RUN_HISTORY   = []   # سجل pipeline runs
+CURRENT_RUN   = {"running": False, "project": "", "current": "", "done": []}
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
 
@@ -61,13 +63,19 @@ def start_openhands(repo: str, plan: str) -> dict:
 
 
 def full_pipeline(project: dict) -> dict:
+    global CURRENT_RUN
     start  = time.time()
-    result = {"project": project.get("name"), "stages": {}}
+    name   = project.get("name", "مشروع")
+    result = {"project": name, "stages": {}}
+
+    CURRENT_RUN = {"running": True, "project": name, "current": "doc_analyzer", "done": []}
+
     try:
-        crew_result = run_pipeline(project)
+        crew_result = run_pipeline(project, status_cb=lambda stage: _update_status(stage))
         result["stages"]     = {k: v[:300] + "..." for k, v in crew_result["stages"].items()}
         result["stages"]["_crew_ok"] = True
 
+        CURRENT_RUN["current"] = "openhands"
         oh = start_openhands(project["repo_full_name"], crew_result["final_plan"])
         result["stages"]["openhands"] = oh
         result["success"]         = oh.get("success", False)
@@ -77,8 +85,18 @@ def full_pipeline(project: dict) -> dict:
         result["success"] = False
         result["error"]   = str(e)
         result["trace"]   = traceback.format_exc()[-500:]
+
     result["duration_s"] = round(time.time() - start)
+    result["time"] = time.strftime("%H:%M")
+    CURRENT_RUN = {"running": False, "project": "", "current": "", "done": []}
+    RUN_HISTORY.append(result)
     return result
+
+def _update_status(stage: str):
+    global CURRENT_RUN
+    if CURRENT_RUN["current"]:
+        CURRENT_RUN["done"].append(CURRENT_RUN["current"])
+    CURRENT_RUN["current"] = stage
 
 
 class H(BaseHTTPRequestHandler):
@@ -93,7 +111,27 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(b)
 
     def do_GET(self):
-        if self.path == "/" or self.path == "/status":
+        if self.path == "/run-status":
+            import copy
+            resp = copy.copy(CURRENT_RUN)
+            resp["history"] = RUN_HISTORY[-20:]
+            self.json_resp(resp)
+            return
+        if self.path == "/" or self.path == "/status" or self.path == "/ui":
+            # serve ui.html
+            import pathlib
+            ui_file = pathlib.Path("/app/ui.html")
+            if ui_file.exists():
+                b = ui_file.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type","text/html; charset=utf-8")
+                self.send_header("Content-Length", len(b))
+                self.end_headers()
+                self.wfile.write(b)
+            else:
+                self.json_resp({"error":"ui.html not found"}, 404)
+            return
+        if self.path == "/status-json":
             import os
             agents_models = {
                 a: os.environ.get(f"AGENT_{a.upper()}_MODEL", "claude")

@@ -30,7 +30,7 @@ def llm_call(model: str, system: str, user: str, max_tokens: int = 2000) -> str:
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def run_pipeline(project: dict) -> dict:
+def run_pipeline(project: dict, status_cb=None) -> dict:
     """
     Pipeline تسلسلي — output كل agent يدخل context الـ agent التالي.
     """
@@ -55,6 +55,7 @@ def run_pipeline(project: dict) -> dict:
         context += f"\n--- تحليل المستند ---\n{output}\n"
 
     # ── ٢. الباحث ──────────────────────────────────────────────────────
+    if status_cb: status_cb("researcher")
     print("[2/6] الباحث...")
     output = llm_call(
         model=_model("AGENT_RESEARCHER_MODEL"),
@@ -66,6 +67,7 @@ def run_pipeline(project: dict) -> dict:
     context += f"\n--- نتيجة البحث ---\n{output}\n"
 
     # ── ٣. المصمم ──────────────────────────────────────────────────────
+    if status_cb: status_cb("designer")
     print("[3/6] المصمم...")
     output = llm_call(
         model=_model("AGENT_DESIGNER_MODEL"),
@@ -77,6 +79,7 @@ def run_pipeline(project: dict) -> dict:
     context += f"\n--- التصميم ---\n{output}\n"
 
     # ── ٤. المخطط التقني ────────────────────────────────────────────────
+    if status_cb: status_cb("planner")
     print("[4/6] المخطط...")
     output = llm_call(
         model=_model("AGENT_PLANNER_MODEL"),
@@ -88,6 +91,7 @@ def run_pipeline(project: dict) -> dict:
     context += f"\n--- الخطة التقنية ---\n{output}\n"
 
     # ── ٥. حلّال المشاكل (مراجعة الخطة) ─────────────────────────────
+    if status_cb: status_cb("problem_solver")
     print("[5/6] حلّال المشاكل...")
     output = llm_call(
         model=_model("AGENT_SOLVER_MODEL"),
@@ -100,6 +104,7 @@ def run_pipeline(project: dict) -> dict:
     context += f"\n--- الخطة النهائية ---\n{output}\n"
 
     # ── ٦. المراجع ─────────────────────────────────────────────────────
+    if status_cb: status_cb("reviewer")
     print("[6/6] المراجع...")
     output = llm_call(
         model=_model("AGENT_REVIEWER_MODEL"),
