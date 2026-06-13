@@ -1,11 +1,11 @@
 {
-  "_comment": "موديل كل مكوّن في المنظومة — يُعدَّل من لوحة التحكم",
-  "manager":       "claude",
-  "doc_analyzer":  "claude",
-  "researcher":    "claude",
-  "designer":      "claude",
-  "planner":       "gpt",
-  "problem_solver":"claude",
-  "reviewer":      "openrouter-auto",
-  "coder":         "claude"
+  "_comment": "format: provider/model — يُعدَّل من لوحة التحكم",
+  "manager":        "anthropic/claude-sonnet-4-5-20251022",
+  "doc_analyzer":   "anthropic/claude-sonnet-4-5-20251022",
+  "researcher":     "anthropic/claude-sonnet-4-5-20251022",
+  "designer":       "anthropic/claude-sonnet-4-5-20251022",
+  "planner":        "openai/gpt-4o",
+  "problem_solver": "anthropic/claude-sonnet-4-5-20251022",
+  "reviewer":       "openrouter/auto",
+  "coder":          "anthropic/claude-sonnet-4-5-20251022"
 }

@@ -227,45 +227,97 @@ renderBadges();
 updateClock();
 // ── إعدادات الموديلات ─────────────────────────────────────────────
 const MODEL_LABELS = {
-  manager:"مدير المشروع (Open WebUI)",
-  doc_analyzer:"📄 محلل النصوص",
-  researcher:"🔍 الباحث",
-  designer:"🎨 المصمم",
-  planner:"📋 المخطط",
-  problem_solver:"🔧 حلّال المشاكل",
-  reviewer:"👁️ المراجع",
-  coder:"💻 المبرمج (OpenHands)"
+  manager:       {ar:"مدير المشروع",       icon:"🎯"},
+  doc_analyzer:  {ar:"محلل النصوص",        icon:"📄"},
+  researcher:    {ar:"الباحث",             icon:"🔍"},
+  designer:      {ar:"المصمم",             icon:"🎨"},
+  planner:       {ar:"المخطط",             icon:"📋"},
+  problem_solver:{ar:"حلّال المشاكل",      icon:"🔧"},
+  reviewer:      {ar:"المراجع",            icon:"👁️"},
+  coder:         {ar:"المبرمج (OpenHands)",icon:"💻"},
 };
-const AVAILABLE_MODELS = ["claude","gpt","openrouter-auto"];
+
+const PROVIDERS = {
+  "anthropic": {
+    label:"Anthropic 🟠",
+    models:[
+      "claude-sonnet-4-5-20251022",
+      "claude-opus-4-5",
+      "claude-haiku-4-5",
+      "claude-3-5-sonnet-20241022",
+      "claude-3-opus-20240229",
+    ]
+  },
+  "openai": {
+    label:"OpenAI 🟢",
+    models:["gpt-4o","gpt-4o-mini","o1","o3-mini","gpt-4-turbo"]
+  },
+  "openrouter": {
+    label:"OpenRouter 🔵",
+    models:["auto","meta-llama/llama-3.3-70b-instruct","google/gemini-pro-1.5","deepseek/deepseek-r1","mistralai/mistral-large"]
+  }
+};
+
+function parseModel(val){
+  // format: "provider/model"
+  const idx = val.indexOf("/");
+  if(idx<0) return {provider:"anthropic", model:val};
+  return {provider:val.substring(0,idx), model:val.substring(idx+1)};
+}
+
+function onProviderChange(key){
+  const pSel = document.getElementById(`p-${key}`);
+  const mSel = document.getElementById(`m-${key}`);
+  const prov = PROVIDERS[pSel.value];
+  mSel.innerHTML = (prov?.models||[]).map(m=>`<option>${m}</option>`).join("");
+}
 
 async function loadModels(){
   try{
     const r = await fetch(`http://${host}:9000/config/models`);
     const cfg = await r.json();
     const g = document.getElementById("models-grid"); g.innerHTML="";
-    Object.entries(MODEL_LABELS).forEach(([key,label])=>{
-      const cur = cfg[key]||"claude";
+    Object.entries(MODEL_LABELS).forEach(([key,info])=>{
+      const cur = cfg[key]||"anthropic/claude-sonnet-4-5-20251022";
+      const {provider,model} = parseModel(cur);
       const div = document.createElement("div");
       div.style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;";
-      div.innerHTML=`<div style="font-size:13px;margin-bottom:8px;color:var(--muted)">${label}</div>
-      <select id="m-${key}" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-size:14px">
-        ${AVAILABLE_MODELS.map(m=>`<option${m===cur?" selected":""}>${m}</option>`).join("")}
-      </select>`;
+      const provOpts = Object.entries(PROVIDERS).map(([k,v])=>
+        `<option value="${k}"${k===provider?" selected":""}>${v.label}</option>`).join("");
+      const mods = PROVIDERS[provider]?.models||[model];
+      const modOpts = mods.map(m=>`<option${m===model?" selected":""}>${m}</option>`).join("");
+      div.innerHTML=`
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">${info.icon} ${info.ar}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">المزوّد</div>
+        <select id="p-${key}" onchange="onProviderChange('${key}')"
+          style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-size:13px;margin-bottom:8px">
+          ${provOpts}
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">الموديل</div>
+        <select id="m-${key}"
+          style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-size:13px">
+          ${modOpts}
+        </select>`;
       g.appendChild(div);
     });
-  }catch(e){ document.getElementById("models-grid").innerHTML='<p style="color:var(--red)">خطأ في تحميل الإعدادات</p>'; }
+  }catch(e){ document.getElementById("models-grid").innerHTML=`<p style="color:var(--red)">❌ خطأ: ${e.message}</p>`; }
 }
 
 async function saveModels(){
   const data={};
-  Object.keys(MODEL_LABELS).forEach(k=>{ const el=document.getElementById("m-"+k); if(el) data[k]=el.value; });
+  Object.keys(MODEL_LABELS).forEach(k=>{
+    const p=document.getElementById(`p-${k}`), m=document.getElementById(`m-${k}`);
+    if(p&&m) data[k]=`${p.value}/${m.value}`;
+  });
   try{
     const r=await fetch(`http://${host}:9000/config/models`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
     const res=await r.json();
     const msg=document.getElementById("save-msg");
-    msg.style.display="block"; msg.textContent=res.success?"✅ تم الحفظ! التغييرات سارية فوراً":"❌ فشل: "+res.error;
-    setTimeout(()=>msg.style.display="none",3000);
-  }catch(e){ alert("خطأ في الحفظ"); }
+    msg.style.display="block";
+    msg.style.color=res.success?"var(--green)":"var(--red)";
+    msg.textContent=res.success?"✅ تم الحفظ! التغييرات سارية فوراً":"❌ فشل: "+res.error;
+    setTimeout(()=>msg.style.display="none",4000);
+  }catch(e){ alert("خطأ في الحفظ: "+e.message); }
 }
 
 loadModels();
