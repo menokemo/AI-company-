@@ -46,9 +46,10 @@ ALL_PROVIDER_MODELS = {
     },
 }
 
-def get_available_providers() -> dict:
-    """يرجع المزوّدين اللي عندهم API key"""
-    env_vars = dict(os.environ)
+_providers_cache = {"data": {}, "ts": 0}
+
+def _read_env() -> dict:
+    env = dict(os.environ)
     for path in ["/opt/ai-company/infrastructure/.env"]:
         try:
             with open(path, encoding="utf-8") as f:
@@ -56,18 +57,72 @@ def get_available_providers() -> dict:
                     line = line.strip()
                     if "=" in line and not line.startswith("#"):
                         k, _, v = line.partition("=")
-                        if v.strip(): env_vars[k.strip()] = v.strip()
+                        if v.strip(): env[k.strip()] = v.strip()
         except: pass
+    return env
 
+def _fetch_anthropic_models(api_key: str) -> list:
+    req = urllib.request.Request("https://api.anthropic.com/v1/models")
+    req.add_header("x-api-key", api_key)
+    req.add_header("anthropic-version", "2023-06-01")
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.load(r)
+            models = [m["id"] for m in data.get("data", [])]
+            return sorted(models, reverse=True)
+    except: return ALL_PROVIDER_MODELS["anthropic"]["models"]
+
+def _fetch_openai_models(api_key: str) -> list:
+    req = urllib.request.Request("https://api.openai.com/v1/models")
+    req.add_header("Authorization", f"Bearer {api_key}")
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.load(r)
+            # فلترة موديلات المحادثة فقط
+            models = [m["id"] for m in data.get("data", [])
+                      if any(x in m["id"] for x in ["gpt-4","gpt-3.5","o1","o3","o4"])]
+            return sorted(set(models), reverse=True)
+    except: return ALL_PROVIDER_MODELS["openai"]["models"]
+
+def _fetch_openrouter_models() -> list:
+    req = urllib.request.Request("https://openrouter.ai/api/v1/models")
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.load(r)
+            models = [m["id"] for m in data.get("data", [])]
+            return sorted(models)
+    except: return ALL_PROVIDER_MODELS["openrouter"]["models"]
+
+def get_available_providers(force_refresh: bool = False) -> dict:
+    """يجيب الموديلات مباشرة من كل API — مكاش (cached) لمدة ساعة."""
+    import time
+    global _providers_cache
+    if not force_refresh and _providers_cache["data"] and (time.time() - _providers_cache["ts"]) < 3600:
+        return _providers_cache["data"]
+
+    env = _read_env()
     result = {}
-    for provider, info in ALL_PROVIDER_MODELS.items():
-        key_val = env_vars.get(info["key_env"], "")
-        if len(key_val) > 10:
-            result[provider] = {"label": info["label"], "models": info["models"], "configured": True}
+
+    anthropic_key = env.get("ANTHROPIC_API_KEY","")
+    if len(anthropic_key) > 10:
+        models = _fetch_anthropic_models(anthropic_key)
+        result["anthropic"] = {"label":"Anthropic 🟠","models":models,"configured":True,"count":len(models)}
+
+    openai_key = env.get("OPENAI_API_KEY","")
+    if len(openai_key) > 10:
+        models = _fetch_openai_models(openai_key)
+        result["openai"] = {"label":"OpenAI 🟢","models":models,"configured":True,"count":len(models)}
+
+    openrouter_key = env.get("OPENROUTER_API_KEY","")
+    if len(openrouter_key) > 10:
+        models = _fetch_openrouter_models()
+        result["openrouter"] = {"label":"OpenRouter 🔵","models":models,"configured":True,"count":len(models)}
 
     if not result:
-        result = {k: {"label": v["label"], "models": v["models"], "configured": False}
-                  for k, v in ALL_PROVIDER_MODELS.items()}
+        result = {k: {"label":v["label"],"models":v["models"],"configured":False,"count":len(v["models"])}
+                  for k,v in ALL_PROVIDER_MODELS.items()}
+
+    _providers_cache = {"data": result, "ts": time.time()}
     return result
 
 
@@ -197,8 +252,9 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
     def do_GET(self):
-        if self.path == "/config/providers":
-            self.json(get_available_providers())
+        if self.path.startswith("/config/providers"):
+            force = "refresh" in self.path
+            self.json(get_available_providers(force_refresh=force))
             return
         if self.path == "/config/models":
             self.json(read_config())
