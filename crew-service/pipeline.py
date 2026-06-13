@@ -10,20 +10,89 @@ LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "")
 def _model(env_key: str, default: str = "claude") -> str:
     return os.environ.get(env_key, default)
 
+def _read_api_keys() -> dict:
+    """يقرأ API keys من .env — بدون hardcoded."""
+    keys = dict(os.environ)
+    for path in ["/opt/ai-company/infrastructure/.env"]:
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if "=" in line and not line.startswith("#"):
+                        k, _, v = line.partition("=")
+                        if v.strip(): keys[k.strip()] = v.strip()
+        except: pass
+    return keys
+
+
 def llm_call(model: str, system: str, user: str, max_tokens: int = 2000) -> str:
-    """استدعاء LiteLLM مباشرة."""
+    """
+    يستدعي المزوّد المناسب حسب format الموديل:
+    - anthropic/xxx → Anthropic API مباشرة
+    - openai/xxx    → OpenAI API مباشرة
+    - openrouter/xx → OpenRouter API مباشرة
+    - claude/gpt/..  → LiteLLM proxy (aliases)
+    """
+    keys  = _read_api_keys()
+    parts = model.split("/", 1)
+    provider = parts[0].lower() if len(parts) > 1 else ""
+    model_id = parts[1] if len(parts) > 1 else model
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user",   "content": user},
+    ]
+
+    # ── Anthropic مباشرة ──────────────────────────────────────────────
+    if provider == "anthropic":
+        api_key = keys.get("ANTHROPIC_API_KEY","")
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model_id,
+                "system": system,
+                "messages": [{"role":"user","content":user}],
+                "max_tokens": max_tokens,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["content"][0]["text"]
+
+    # ── OpenAI مباشرة ─────────────────────────────────────────────────
+    if provider == "openai":
+        api_key = keys.get("OPENAI_API_KEY","")
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model_id, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3},
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    # ── OpenRouter مباشرة ─────────────────────────────────────────────
+    if provider == "openrouter":
+        api_key = keys.get("OPENROUTER_API_KEY","")
+        resp = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model_id, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3},
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    # ── LiteLLM proxy (aliases: claude, gpt, openrouter-auto) ──────────
     resp = requests.post(
         f"{LITELLM_URL}/v1/chat/completions",
         headers={"Authorization": f"Bearer {LITELLM_KEY}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user},
-            ],
-            "max_tokens": max_tokens,
-            "temperature": 0.3,
-        },
+        json={"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3},
         timeout=120,
     )
     resp.raise_for_status()

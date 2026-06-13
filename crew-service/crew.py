@@ -226,13 +226,46 @@ def generate_design_options(project: dict) -> dict:
 أرجع HTML فقط بدون أي شرح."""
 
         try:
-            resp = _req.post(
-                f"{LITELLM_URL}/v1/chat/completions",
-                headers={{"Authorization": f"Bearer {LITELLM_KEY}", "Content-Type": "application/json"}},
-                json={{"model": model, "messages": [{{"role":"user","content":prompt}}], "max_tokens": 4000}},
-                timeout=120,
-            )
-            html = resp.json()["choices"][0]["message"]["content"]
+            # استدعاء مباشر حسب المزوّد
+            parts = model.split("/", 1)
+            provider_key = parts[0].lower() if len(parts) > 1 else ""
+            model_id = parts[1] if len(parts) > 1 else model
+
+            # قراءة API keys من .env
+            env_keys = dict(os.environ)
+            try:
+                with open(os.environ.get("CONFIG_FILE","/app/config/models.json").replace("models.json","../../infrastructure/.env")) as _f:
+                    for _line in _f:
+                        _line = _line.strip()
+                        if "=" in _line and not _line.startswith("#"):
+                            _k,_,_v = _line.partition("=")
+                            if _v.strip(): env_keys[_k.strip()] = _v.strip()
+            except: pass
+
+            if provider_key == "anthropic":
+                resp = _req.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": env_keys.get("ANTHROPIC_API_KEY",""), "anthropic-version":"2023-06-01","Content-Type":"application/json"},
+                    json={"model":model_id,"messages":[{"role":"user","content":prompt}],"max_tokens":4000},
+                    timeout=120,
+                )
+                html = resp.json()["content"][0]["text"]
+            elif provider_key == "openai":
+                resp = _req.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization":f"Bearer {env_keys.get('OPENAI_API_KEY','')}","Content-Type":"application/json"},
+                    json={"model":model_id,"messages":[{"role":"user","content":prompt}],"max_tokens":4000},
+                    timeout=120,
+                )
+                html = resp.json()["choices"][0]["message"]["content"]
+            else:
+                resp = _req.post(
+                    f"{LITELLM_URL}/v1/chat/completions",
+                    headers={{"Authorization": f"Bearer {LITELLM_KEY}", "Content-Type": "application/json"}},
+                    json={{"model": model, "messages": [{{"role":"user","content":prompt}}], "max_tokens": 4000}},
+                    timeout=120,
+                )
+                html = resp.json()["choices"][0]["message"]["content"]
             # تنظيف الـ markdown
             if "```html" in html: html = html.split("```html")[1].split("```")[0].strip()
             elif "```" in html: html = html.split("```")[1].split("```")[0].strip()
