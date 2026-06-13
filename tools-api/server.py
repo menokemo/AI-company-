@@ -64,6 +64,7 @@ def start_coding(full_name, task):
         },
         "selected_repository": full_name,
         "git_provider": "github",
+        "selected_branch": "main",
         "llm_model": "openai/claude",
     }
     try:
