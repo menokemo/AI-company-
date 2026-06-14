@@ -96,6 +96,21 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
   <h2>▸ الخدمات الجارية</h2>
   <div class="grid" id="services"></div>
 
+  <!-- ── Access Credentials ── -->
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3>🔐 Access Credentials</h3>
+      <button id="creds-toggle" onclick="toggleCredentials()"
+        style="background:var(--surface);border:1px solid var(--border);color:var(--muted);
+               border-radius:8px;padding:5px 14px;cursor:pointer;font-size:13px">Show</button>
+    </div>
+    <div id="creds-section" style="display:none">
+      <div id="creds-grid" style="display:grid;gap:10px">
+        <p style="color:var(--muted);font-size:13px">Loading...</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ── لوحة إعدادات الموديلات ── -->
   <div class="section" id="models-section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
