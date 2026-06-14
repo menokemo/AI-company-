@@ -197,9 +197,9 @@ def generate_design_options(project: dict) -> dict:
     model = cfg.get("designer", "claude")
 
     styles = [
-        ("modern",       "Modern & Clean — calm colors, wide whitespace"),
-        ("vibrant",      "Vibrant & Colorful — bold gradients, bright colors"),
-        ("professional", "Professional & Corporate — sidebar, tables, full dashboard"),
+        ("modern",       "Modern & Minimal",   "#6366f1", "#f8fafc"),
+        ("vibrant",      "Vibrant & Bold",     "#f59e0b", "#0f172a"),
+        ("professional", "Professional SaaS",  "#0ea5e9", "#ffffff"),
     ]
 
     def call_llm(model_str, prompt_text):
