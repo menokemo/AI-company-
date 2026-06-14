@@ -238,6 +238,18 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/config/models":
             self.json(read_config())
             return
+        if self.path == "/system/sync":
+            import subprocess
+            try:
+                r2 = subprocess.run(
+                    ["bash", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
+                    capture_output=True, text=True, timeout=120
+                )
+                out = (r2.stdout + r2.stderr).strip()
+                self.json({"success": r2.returncode == 0, "output": out[-2000:]})
+            except Exception as e:
+                self.json({"success": False, "error": str(e)})
+            return
         if self.path == "/system/credentials":
             env = dict(os.environ)
             # قراءة من .env أيضاً
