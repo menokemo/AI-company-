@@ -1,11 +1,1 @@
-{
-  "_comment": "format: provider/model — يُعدَّل من لوحة التحكم",
-  "manager":        "claude",
-  "doc_analyzer":   "anthropic/claude-sonnet-4-6",
-  "researcher":     "anthropic/claude-sonnet-4-6",
-  "designer":       "anthropic/claude-sonnet-4-6",
-  "planner":        "anthropic/claude-opus-4-5-20251101",
-  "problem_solver": "anthropic/claude-sonnet-4-6",
-  "reviewer":       "anthropic/claude-haiku-4-5-20251001",
-  "coder":          "anthropic/claude-sonnet-4-6"
-}
+{}
