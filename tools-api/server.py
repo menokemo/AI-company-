@@ -238,6 +238,37 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/config/models":
             self.json(read_config())
             return
+        if self.path == "/system/credentials":
+            env = dict(os.environ)
+            # قراءة من .env أيضاً
+            try:
+                for line in open("/opt/ai-company/infrastructure/.env"):
+                    line = line.strip()
+                    if "=" in line and not line.startswith("#"):
+                        k,_,v = line.partition("=")
+                        if v: env[k.strip()] = v.strip()
+            except: pass
+            host = env.get("HOST_IP", "localhost")
+            self.json({
+                "open_webui": {
+                    "url":      f"http://{host}:8888",
+                    "email":    env.get("WEBUI_ADMIN_EMAIL", "— not set —"),
+                    "password": env.get("WEBUI_ADMIN_PASSWORD", "— not set —"),
+                },
+                "infisical": {
+                    "url":      f"http://{host}:8080",
+                    "email":    env.get("INFISICAL_ADMIN_EMAIL", "admin@ai-company.local"),
+                    "password": env.get("INFISICAL_ADMIN_PASSWORD", "— not set —"),
+                },
+                "litellm": {
+                    "url":       f"http://{host}:4000",
+                    "master_key": env.get("LITELLM_MASTER_KEY","")[:30] + "...",
+                },
+                "portainer": {
+                    "url": f"https://{host}:9443",
+                },
+            })
+            return
         if self.path == "/health":
             self.json({"status":"ok","github":bool(GITHUB_TOKEN),"user":get_username(),"openhands_api":"v1"})
         else:
