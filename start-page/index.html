@@ -322,6 +322,53 @@ async function saveModels(){
 
 loadProviders().then(() => loadModels());
 
+// ── Credentials Section ─────────────────────────────────────────
+let credsLoaded = false;
+function toggleCredentials(){
+  const sec = document.getElementById("creds-section");
+  const btn = document.getElementById("creds-toggle");
+  if(sec.style.display === "none"){
+    sec.style.display = "block";
+    btn.textContent = "Hide";
+    if(!credsLoaded) loadCredentials();
+  } else {
+    sec.style.display = "none";
+    btn.textContent = "Show";
+  }
+}
+
+async function loadCredentials(){
+  try{
+    const r = await fetch(`http://${host}:9000/system/credentials`);
+    const d = await r.json();
+    const g = document.getElementById("creds-grid");
+    const services = [
+      {name:"💬 Open WebUI",  data: d.open_webui},
+      {name:"🔑 Infisical",   data: d.infisical},
+      {name:"🔀 LiteLLM",     data: d.litellm},
+      {name:"🐳 Portainer",   data: d.portainer},
+    ];
+    g.innerHTML = services.map(svc => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-weight:700;margin-bottom:10px">${svc.name}</div>
+        ${Object.entries(svc.data).map(([k,v]) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span style="color:var(--muted)">${k}</span>
+            <span style="font-family:monospace;background:var(--bg);padding:3px 8px;
+                         border-radius:4px;cursor:pointer;user-select:all"
+                  onclick="navigator.clipboard.writeText('${v}')"
+                  title="Click to copy">${v}</span>
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+    credsLoaded = true;
+  }catch(e){
+    document.getElementById("creds-grid").innerHTML = `<p style="color:var(--red)">Error loading credentials</p>`;
+  }
+}
+
 setInterval(() => {
   services.forEach(s => checkService(s.port, s.proto));
   updateClock();
