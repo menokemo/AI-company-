@@ -257,13 +257,40 @@ def generate_design_options(project: dict) -> dict:
         return r.json()["choices"][0]["message"]["content"]
 
     mockups = []
-    for i, (style_key, style_desc) in enumerate(styles, 1):
-        prompt = (
-            "You are a professional UI/UX designer. Create a complete HTML mockup for: "
-            + name + ". Description: " + description + ". Requirements: " + requirements
-            + ". Style: " + style_desc
-            + ". Return complete HTML with embedded CSS, beautiful realistic design. HTML only."
-        )
+    for i, (style_key, style_name, accent, bg) in enumerate(styles, 1):
+        prompt = """You are a world-class UI/UX designer creating a Figma-quality prototype.
+
+PROJECT: """ + name + """
+DESCRIPTION: """ + description + """
+REQUIREMENTS: """ + requirements + """
+STYLE: """ + style_name + """ (accent: """ + accent + """, background: """ + bg + """)
+
+Create a complete single-file HTML prototype with:
+
+1. TAILWIND CSS from CDN (https://cdn.tailwindcss.com)
+2. MULTIPLE SCREENS (4-5 screens): dashboard, detail view, form, list, settings
+3. SIDEBAR NAVIGATION with icons (use unicode or inline SVG)
+4. CLICK NAVIGATION between screens (JavaScript showScreen function)
+5. REALISTIC CONTENT with actual data relevant to the project
+6. DESIGN SYSTEM: consistent colors, typography, spacing throughout
+7. COMPONENTS: cards, tables, charts (CSS only), badges, buttons, modals
+8. DARK/LIGHT theme based on style
+
+STRUCTURE:
+- Header with logo + user avatar
+- Sidebar with navigation items (each links to a screen)
+- Main content area (changes per screen)
+- Each screen has realistic data and interactions
+
+REQUIREMENTS:
+- Mobile responsive
+- Smooth transitions between screens
+- Hover states on all interactive elements
+- Loading states where appropriate
+- Empty states for lists
+- Form validation visual feedback
+
+Return ONLY the complete HTML file. No explanations."""
         try:
             html = call_llm(model, prompt)
             if "```html" in html:
@@ -272,7 +299,7 @@ def generate_design_options(project: dict) -> dict:
                 html = html.split("```")[1].split("```")[0].strip()
         except Exception as e:
             html = "<h1>Error: " + str(e) + "</h1>"
-        mockups.append({"id": i, "style": style_key, "style_ar": style_desc.split("—")[0].strip(), "html": html})
+        mockups.append({"id": i, "style": style_key, "style_ar": style_name, "html": html})
 
     return {"success": True, "mockups": mockups, "project": name}
 
