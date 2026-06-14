@@ -177,6 +177,7 @@ services:
     environment:
       - PORT=9002
       - LITELLM_BASE_URL=http://ai-litellm:4000
+      - LITELLM_API_KEY=${LITELLM_MASTER_KEY}
       - OPENHANDS_URL=http://ai-openhands:3000
       - CONFIG_FILE=/app/config/models.json
     ports:
