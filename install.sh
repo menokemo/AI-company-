@@ -222,18 +222,6 @@ if [ -n "$INFISICAL_CLIENT_ID" ] && [ -n "$INFISICAL_CLIENT_SECRET" ]; then
         "INFISICAL_CLIENT_SECRET=$INFISICAL_CLIENT_SECRET" \
         "INFISICAL_PROJECT_ID=$INFISICAL_PROJECT_ID" \
         "ENV_FILE=$ENV_FILE"
-import re
-env = open("$ENV_FILE").read()
-for k,v in [("INFISICAL_CLIENT_ID","$INFISICAL_CLIENT_ID"),
-            ("INFISICAL_CLIENT_SECRET","$INFISICAL_CLIENT_SECRET"),
-            ("INFISICAL_PROJECT_ID","$INFISICAL_PROJECT_ID")]:
-    if f"{k}=" in env:
-        env = re.sub(f"^{k}=.*", f"{k}={v}", env, flags=re.MULTILINE)
-    else:
-        env += f"
-{k}={v}"
-open("$ENV_FILE","w").write(env)
-CREDEOF
     info "Running Infisical sync..."
     bash "$ROOT_DIR/secrets-sync/infisical-sync.sh"         && log "Infisical sync completed — API keys loaded"         || warn "Infisical sync failed — run: sudo bash $ROOT_DIR/secrets-sync/infisical-sync.sh"
 else
