@@ -122,17 +122,21 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
   </div>
 
   <div class="section">
-    <h3>↺ مزامنة المفاتيح من Infisical</h3>
-    <p style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.8">
-      عند إضافة أو تعديل مفاتيح في Infisical، شغّل الأمر التالي لتطبيق التغييرات على كل الخدمات:
-    </p>
-    <div class="cmd">
-      <code>sudo bash /opt/ai-company/secrets-sync/infisical-sync.sh</code>
-      <button class="copy-btn" onclick="copyCmd(this, 'sudo bash /opt/ai-company/secrets-sync/infisical-sync.sh')">نسخ</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3>🔄 Sync from Infisical</h3>
+      <button onclick="runSync()"
+        id="sync-btn"
+        style="background:var(--accent);color:#fff;border:none;border-radius:8px;
+               padding:8px 20px;cursor:pointer;font-size:14px;font-weight:600">
+        🔄 Sync Now
+      </button>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:10px">
-      المزامنة التلقائية: كل ساعة عبر cron job (مثبّت مع install.sh)
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.7">
+      After adding API keys in Infisical, click Sync to apply them to all services.
     </p>
+    <div id="sync-output" style="display:none;background:var(--bg);border:1px solid var(--border);
+         border-radius:8px;padding:12px;font-family:monospace;font-size:12px;
+         white-space:pre-wrap;max-height:200px;overflow-y:auto;color:var(--text)"></div>
   </div>
 
   <div class="section">
@@ -334,6 +338,38 @@ async function saveModels(){
 }
 
 loadProviders().then(() => loadModels());
+
+// ── Sync from Infisical ──────────────────────────────────────────
+async function runSync(){
+  const btn = document.getElementById("sync-btn");
+  const out = document.getElementById("sync-output");
+  btn.textContent = "⏳ Syncing...";
+  btn.disabled = true;
+  out.style.display = "block";
+  out.textContent = "Running infisical-sync.sh...";
+  try{
+    const r = await fetch(`http://${host}:9000/system/sync`, {method:"POST"});
+    const d = await r.json();
+    out.textContent = d.output || (d.success ? "✅ Sync completed!" : "❌ " + d.error);
+    if(d.success){
+      btn.textContent = "✅ Synced!";
+      btn.style.background = "var(--green)";
+      // Reload providers after sync
+      setTimeout(()=>{ credsLoaded=false; loadProviders().then(()=>loadModels()); }, 2000);
+    } else {
+      btn.textContent = "❌ Failed";
+      btn.style.background = "var(--red)";
+    }
+  }catch(e){
+    out.textContent = "❌ Error: " + e.message;
+    btn.textContent = "❌ Error";
+  }
+  setTimeout(()=>{
+    btn.textContent = "🔄 Sync Now";
+    btn.disabled = false;
+    btn.style.background = "";
+  }, 5000);
+}
 
 // ── Credentials Section ─────────────────────────────────────────
 let credsLoaded = false;
