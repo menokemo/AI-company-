@@ -184,87 +184,85 @@ th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;
 
 
 def generate_design_options(project: dict) -> dict:
-    """يولّد ٣ تصميمات HTML مختلفة للمشروع."""
+    """يولّد 3 تصميمات HTML مختلفة."""
     import requests as _req
-    name        = project.get("name","مشروع")
-    description = project.get("description","")
-    requirements= project.get("requirements","")
-
-    LITELLM_URL = os.environ.get("LITELLM_BASE_URL","http://ai-litellm:4000")
-    LITELLM_KEY = os.environ.get("LITELLM_API_KEY","")
-
+    name         = project.get("name", "project")
+    description  = project.get("description", "")
+    requirements = project.get("requirements", "")
+    LITELLM_URL  = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
+    LITELLM_KEY  = os.environ.get("LITELLM_API_KEY", "")
+    env_keys     = dict(os.environ)
     try:
-        cfg = {}
-        with open(os.environ.get("CONFIG_FILE","/app/config/models.json")) as f:
+        with open(os.environ.get("CONFIG_FILE", "/app/config/models.json")) as f:
             import json as _j; cfg = _j.load(f)
-    except: pass
-    model = cfg.get("designer","claude")
+    except: cfg = {}
+    model = cfg.get("designer", "claude")
 
     styles = [
-        ("modern",       "عصري ونظيف — ألوان هادئة، whitespace واسع، typography واضح"),
-        ("vibrant",      "حيوي وملوّن — gradient جريء، بطاقات مميزة، ألوان زاهية"),
-        ("professional", "احترافي ومؤسسي — sidebar navigation، جداول، dashboard كامل"),
+        ("modern",       "Modern & Clean — calm colors, wide whitespace"),
+        ("vibrant",      "Vibrant & Colorful — bold gradients, bright colors"),
+        ("professional", "Professional & Corporate — sidebar, tables, full dashboard"),
     ]
+
+    def call_llm(model_str, prompt_text):
+        parts = model_str.split("/", 1)
+        prov  = parts[0].lower() if len(parts) > 1 else ""
+        mid   = parts[1] if len(parts) > 1 else model_str
+        msgs  = [{"role": "user", "content": prompt_text}]
+        if prov == "anthropic":
+            r = _req.post("https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": env_keys.get("ANTHROPIC_API_KEY",""),
+                         "anthropic-version": "2023-06-01",
+                         "Content-Type": "application/json"},
+                json={"model": mid, "messages": msgs, "max_tokens": 4000},
+                timeout=120)
+            r.raise_for_status()
+            return r.json()["content"][0]["text"]
+        if prov == "openai":
+            r = _req.post("https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": "Bearer " + env_keys.get("OPENAI_API_KEY",""),
+                         "Content-Type": "application/json"},
+                json={"model": mid, "messages": msgs, "max_tokens": 4000, "temperature": 0.7},
+                timeout=120)
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
+        if prov == "openrouter":
+            r = _req.post("https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": "Bearer " + env_keys.get("OPENROUTER_API_KEY",""),
+                         "Content-Type": "application/json"},
+                json={"model": mid, "messages": msgs, "max_tokens": 4000},
+                timeout=120)
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
+        r = _req.post(LITELLM_URL + "/v1/chat/completions",
+            headers={"Authorization": "Bearer " + LITELLM_KEY,
+                     "Content-Type": "application/json"},
+            json={"model": model_str, "messages": msgs, "max_tokens": 4000},
+            timeout=120)
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
 
     mockups = []
     for i, (style_key, style_desc) in enumerate(styles, 1):
-        prompt = f"""أنت مصمم UI/UX محترف. اصنع mockup HTML كامل وجميل لمشروع:
-
-الاسم: {name}
-الوصف: {description}
-المتطلبات: {requirements}
-أسلوب التصميم: {style_desc}
-
-المطلوب:
-- صفحة HTML واحدة كاملة مع CSS مدمج
-- تصميم {style_desc}
-- واجهة تفاعلية تعرض على الأقل ٢-٣ شاشات أو أقسام
-- محتوى واقعي ومناسب للمشروع (مش lorem ipsum)
-- responsive design
-- اجعله جميلاً ومثيراً للإعجاب
-
-أرجع HTML فقط بدون أي شرح."""
-
+        prompt = (
+            "You are a professional UI/UX designer. Create a complete HTML mockup for: "
+            + name + ". Description: " + description + ". Requirements: " + requirements
+            + ". Style: " + style_desc
+            + ". Return complete HTML with embedded CSS, beautiful realistic design. HTML only."
+        )
         try:
-            # استدعاء مباشر حسب المزوّد
-            parts = model.split("/", 1)
-            provider_key = parts[0].lower() if len(parts) > 1 else ""
-            model_id = parts[1] if len(parts) > 1 else model
-
-            env_keys = dict(os.environ)  # مُحقَنة من docker-compose/Infisical
-
-            if provider_key == "anthropic":
-                resp = _req.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={"x-api-key": env_keys.get("ANTHROPIC_API_KEY",""), "anthropic-version":"2023-06-01","Content-Type":"application/json"},
-                    json={"model":model_id,"messages":[{"role":"user","content":prompt}],"max_tokens":4000},
-                    timeout=120,
-                )
-                html = resp.json()["content"][0]["text"]
-            elif provider_key == "openai":
-                resp = _req.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization":f"Bearer {env_keys.get('OPENAI_API_KEY','')}","Content-Type":"application/json"},
-                    json={"model":model_id,"messages":[{"role":"user","content":prompt}],"max_tokens":4000},
-                    timeout=120,
-                )
-                html = resp.json()["choices"][0]["message"]["content"]
-            else:
-                resp = _req.post(
-                    f"{LITELLM_URL}/v1/chat/completions",
-                    headers={{"Authorization": f"Bearer {LITELLM_KEY}", "Content-Type": "application/json"}},
-                    json={{"model": model, "messages": [{{"role":"user","content":prompt}}], "max_tokens": 4000}},
-                    timeout=120,
-                )
-                html = resp.json()["choices"][0]["message"]["content"]
-            # تنظيف الـ markdown
-            if "```html" in html: html = html.split("```html")[1].split("```")[0].strip()
-            elif "```" in html: html = html.split("```")[1].split("```")[0].strip()
-            mockups.append({{"id": i, "style": style_key, "style_ar": style_desc.split("—")[0].strip(), "html": html}})
+            html = call_llm(model, prompt)
+            if "```html" in html:
+                html = html.split("```html")[1].split("```")[0].strip()
+            elif "```" in html:
+                html = html.split("```")[1].split("```")[0].strip()
         except Exception as e:
-            mockups.append({{"id": i, "style": style_key, "html": f"<h1>خطأ: {e}</h1>"}})
+            html = "<h1>Error: " + str(e) + "</h1>"
+        mockups.append({"id": i, "style": style_key, "style_ar": style_desc.split("—")[0].strip(), "html": html})
 
-    return {{"success": True, "mockups": mockups, "project": name}}
+    return {"success": True, "mockups": mockups, "project": name}
+
+
 
 
 if __name__ == "__main__":
