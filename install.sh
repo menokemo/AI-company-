@@ -217,8 +217,11 @@ INFISICAL_CLIENT_SECRET=$(grep "^INFISICAL_CLIENT_SECRET=" "$ENV_FILE" 2>/dev/nu
 [ -z "$INFISICAL_CLIENT_SECRET" ] && INFISICAL_CLIENT_SECRET="$INFISICAL_SECRET"
 
 if [ -n "$INFISICAL_CLIENT_ID" ] && [ -n "$INFISICAL_CLIENT_SECRET" ]; then
-    # Update .env with final credentials
-    python3 - << CREDEOF
+    python3 "$ROOT_DIR/secrets-sync/update-env.py" \
+        "INFISICAL_CLIENT_ID=$INFISICAL_CLIENT_ID" \
+        "INFISICAL_CLIENT_SECRET=$INFISICAL_CLIENT_SECRET" \
+        "INFISICAL_PROJECT_ID=$INFISICAL_PROJECT_ID" \
+        "ENV_FILE=$ENV_FILE"
 import re
 env = open("$ENV_FILE").read()
 for k,v in [("INFISICAL_CLIENT_ID","$INFISICAL_CLIENT_ID"),
