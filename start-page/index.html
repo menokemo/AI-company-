@@ -184,6 +184,9 @@ const badges = [
 
 function renderServices() {
   const grid = document.getElementById("services");
+  if(!grid){ console.error("services grid not found!"); return; }
+  if(!services || services.length === 0){ console.error("services array empty!"); return; }
+  console.log("renderServices: adding", services.length, "cards to", grid);
   services.forEach(s => {
     const url = `${s.proto}://${host}:${s.port}${s.path}`;
     const card = document.createElement("a");
