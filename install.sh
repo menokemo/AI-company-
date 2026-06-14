@@ -22,9 +22,16 @@ ENV_FILE="$ROOT_DIR/infrastructure/.env"
 GITHUB_TOKEN=""
 
 # ── قراءة الـ arguments ───────────────────────────────────────────────────
+INFISICAL_ID=""
+INFISICAL_SECRET=""
+INFISICAL_PROJ=""
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --github-token) GITHUB_TOKEN="$2"; shift 2 ;;
+        --github-token)      GITHUB_TOKEN="$2";    shift 2 ;;
+        --infisical-id)      INFISICAL_ID="$2";    shift 2 ;;
+        --infisical-secret)  INFISICAL_SECRET="$2"; shift 2 ;;
+        --infisical-project) INFISICAL_PROJ="$2";  shift 2 ;;
         *) err "خيار غير معروف: $1" ;;
     esac
 done
