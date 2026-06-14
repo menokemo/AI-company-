@@ -185,7 +185,6 @@ th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;
 
 def generate_design_options(project: dict) -> dict:
     """يولّد 3 تصميمات HTML مختلفة."""
-    import requests as _req
     name         = project.get("name", "project")
     description  = project.get("description", "")
     requirements = project.get("requirements", "")
