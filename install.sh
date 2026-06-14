@@ -60,7 +60,13 @@ REPO_AUTH_URL="https://${GITHUB_TOKEN}@github.com/menokemo/AI-company-.git"
 
 if [ -d "$ROOT_DIR/.git" ]; then
     git -C "$ROOT_DIR" remote set-url origin "$REPO_AUTH_URL"
-    git -C "$ROOT_DIR" pull --ff-only
+    # احفظ .env قبل الـ reset (فيه secrets)
+    [ -f "$ENV_FILE" ] && cp "$ENV_FILE" /tmp/ai-company-env.bak
+    git -C "$ROOT_DIR" fetch origin
+    git -C "$ROOT_DIR" reset --hard origin/main
+    git -C "$ROOT_DIR" clean -fd --exclude=infrastructure/.env         --exclude=config/models.json --exclude=data --exclude=config/mockups
+    # أرجع .env
+    [ -f /tmp/ai-company-env.bak ] && cp /tmp/ai-company-env.bak "$ENV_FILE"
     log "الريبو محدّث"
 else
     git clone "$REPO_AUTH_URL" "$ROOT_DIR"
