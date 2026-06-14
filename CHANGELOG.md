@@ -1,3 +1,38 @@
+## [1.0.0] — 2026-06-14 — نظام التثبيت الكامل
+
+### الإنجاز الكبير: تثبيت بأمر واحد
+```bash
+sudo bash install.sh --github-token ghp_xxx
+```
+
+### ما يحدث أوتوماتيك
+1. Clone الريبو الخاص
+2. توليد كل الـ secrets (random, secure)
+3. كتابة .env بـ Python (تجنب encoding issues)
+4. حفظ القيم الموجودة عند reinstall
+5. تشغيل 12 خدمة Docker
+6. إعداد Infisical + Machine Identity
+7. Sync من Infisical (API keys, tokens)
+8. ربط GitHub بـ OpenHands
+9. عرض ملخص كامل
+
+### صفر hardcoded في الكود
+- litellm library يقرأ API keys من env تلقائياً
+- docker-compose: `env_file: .env` في كل service
+- models.json: فارغ، يُملأ من لوحة التحكم
+- HOST_IP: يُكتشف من `hostname -I`
+
+### Mockup Generation يعمل
+- 3 تصميمات HTML مختلفة (modern, vibrant, professional)
+- تُولَّد من `/config/providers` API
+- تُعرض للمستخدم في Open WebUI قبل البدء
+
+### Provider/Model Selection ديناميكي
+- يجيب كل الموديلات من API كل مزوّد
+- يعرض المزوّدين حتى لو غير مُهيَّأين
+
+---
+
 # سجل التغييرات — CHANGELOG
 
 > كل تغيير مهم في المشروع يُسجَّل هنا، الأحدث في الأعلى.

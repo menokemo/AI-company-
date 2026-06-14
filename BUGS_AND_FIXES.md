@@ -15,6 +15,41 @@
 
 > قاعدة: أي حل يُجرَّب ولا يحلّ المشكلة، يُزال فورًا قبل تجربة حل آخر، للحفاظ على نظافة الكود.
 
+
+---
+
+## جلسة 2026-06-14 — Install Script + Providers + Zero Hardcoded
+
+### BUG: Arabic Unicode `──` في heredoc يلصق الأسطر
+- **المشكلة:** الحرف `──` (U+2500) في comments الـ bash heredoc كان بيكوّل الأسطر
+- **النتيجة:** `ANTHROPIC_API_KEY=` اتكتب على نفس سطر الـ comment، وأقسام كاملة اختفت
+- **الحل:** استبدال heredoc بـ Python script (`update-env.py`) لكتابة الـ .env
+
+### BUG: f-string مع newline في inline Python داخل bash heredoc
+- **المشكلة:** `env += f"\n{k}={v}"` داخل `python3 - << CREDEOF` بيعطي SyntaxError
+- **الحل:** نقل الكود لملف خارجي `secrets-sync/update-env.py`
+
+### BUG: `INFISICAL_CLIENT_ID` مش بيتحفظ عند reinstall
+- **المشكلة:** install.sh كان بيكتب .env من الصفر وبيمسح الـ credentials الموجودة
+- **الحل:** `get_env()` function تقرأ القيمة الموجودة قبل الكتابة
+
+### BUG: Providers مش بيظهروا في لوحة التحكم بعد install
+- **المشكلة:** API keys فاضية في .env لأن sync مش اشتغل
+- **الحل:** install.sh بيشغّل infisical-sync.sh أوتوماتيك بعد إعداد الـ credentials
+
+### BUG: `generate_design_options` فشل بـ `{{...}}` double braces
+- **المشكلة:** استخدام `{{key: value}}` في Python خارج f-string → `unhashable type: dict`
+- **الحل:** إعادة كتابة الدالة كاملة بدون double braces
+
+### BUG: litellm wildcard models مش مدعومة في v1.88.1
+- **المشكلة:** `"anthropic/*"` في LiteLLM config لا تشتغل
+- **الحل:** استخدام litellm كـ Python library مباشرة — يقرأ API keys من env تلقائياً
+
+### BUG: OpenAI gpt-5.x لا يدعم `/v1/chat/completions`
+- **المشكلة:** الموديلات الجديدة تستخدم `/v1/responses` API
+- **الحل:** litellm library يتعامل مع كل API تلقائياً بدون hardcoded logic
+
+---
 ---
 
 ## السجل
