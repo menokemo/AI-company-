@@ -219,11 +219,27 @@ def generate_design_options(project: dict) -> dict:
             r.raise_for_status()
             return r.json()["content"][0]["text"]
         if prov == "openai":
+            key = env_keys.get("OPENAI_API_KEY","")
+            # جرّب Chat Completions أولاً، لو فشل جرّب Responses API (gpt-5.x)
             r = _req.post("https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": "Bearer " + env_keys.get("OPENAI_API_KEY",""),
-                         "Content-Type": "application/json"},
+                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
                 json={"model": mid, "messages": msgs, "max_tokens": 4000, "temperature": 0.7},
                 timeout=120)
+            if r.status_code == 400:
+                # Responses API للموديلات الجديدة (gpt-5.x, o1, o3, o4...)
+                r2 = _req.post("https://api.openai.com/v1/responses",
+                    headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+                    json={"model": mid, "input": msgs[-1]["content"]},
+                    timeout=120)
+                r2.raise_for_status()
+                d2 = r2.json()
+                out = d2.get("output", [])
+                for item in out:
+                    if item.get("type") == "message":
+                        for c in item.get("content", []):
+                            if c.get("type") == "output_text":
+                                return c["text"]
+                return str(out)
             r.raise_for_status()
             return r.json()["choices"][0]["message"]["content"]
         if prov == "openrouter":
