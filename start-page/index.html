@@ -203,10 +203,13 @@ function renderServices() {
 }
 
 function checkService(port, proto) {
-  const dot = document.getElementById(`dot-${port}`);
-  const url = `${proto}://${host}:${port}/`;
-  fetch(url, { mode:"no-cors", cache:"no-cache", signal: AbortSignal.timeout(4000) })
-    .then(() => { dot.className = "dot on"; })
+  const dot = document.getElementById("dot-" + port);
+  if(!dot) return;
+  const url = proto + "://" + host + ":" + port + "/";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  fetch(url, { mode:"no-cors", cache:"no-cache", signal: ctrl.signal })
+    .then(() => { dot.className = "dot on"; clearTimeout(timer); })
     .catch(() => { dot.className = "dot off"; });
 }
 
