@@ -1,11 +1,11 @@
 {
   "_comment": "format: provider/model — يُعدَّل من لوحة التحكم",
-  "manager":        "anthropic/claude-sonnet-4-5-20251022",
-  "doc_analyzer":   "anthropic/claude-sonnet-4-5-20251022",
-  "researcher":     "anthropic/claude-sonnet-4-5-20251022",
-  "designer":       "anthropic/claude-sonnet-4-5-20251022",
-  "planner":        "openai/gpt-4o",
-  "problem_solver": "anthropic/claude-sonnet-4-5-20251022",
-  "reviewer":       "openrouter/auto",
-  "coder":          "anthropic/claude-sonnet-4-5-20251022"
+  "manager":        "claude",
+  "doc_analyzer":   "anthropic/claude-sonnet-4-6",
+  "researcher":     "anthropic/claude-sonnet-4-6",
+  "designer":       "anthropic/claude-sonnet-4-6",
+  "planner":        "anthropic/claude-opus-4-5-20251101",
+  "problem_solver": "anthropic/claude-sonnet-4-6",
+  "reviewer":       "anthropic/claude-haiku-4-5-20251001",
+  "coder":          "anthropic/claude-sonnet-4-6"
 }
