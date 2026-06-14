@@ -1,121 +1,101 @@
 #!/usr/bin/env bash
-#
-# سكربت تثبيت منظومة AI Company
-# يُشغَّل على الـ VM بصلاحية root:  sudo ./install.sh
-# آمن لإعادة التشغيل (idempotent): لا يعيد توليد الأسرار إن كانت موجودة.
-#
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INFRA_DIR="$SCRIPT_DIR/infrastructure"
-ENV_FILE="$INFRA_DIR/.env"
-COMPOSE_FILE="$INFRA_DIR/docker-compose.yml"
+# ── ألوان ────────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; NC='\033[0m'
 
-log()  { printf "\033[1;32m[+]\033[0m %s\n" "$*"; }
-warn() { printf "\033[1;33m[!]\033[0m %s\n" "$*"; }
-err()  { printf "\033[1;31m[x]\033[0m %s\n" "$*" >&2; }
+log()  { echo -e "${GREEN}[✓]${NC} $*"; }
+warn() { echo -e "${YELLOW}[!]${NC} $*"; }
+err()  { echo -e "${RED}[✗]${NC} $*"; exit 1; }
 
-# 1) التحقق من صلاحية root
-if [ "$(id -u)" -ne 0 ]; then
-  err "شغّل السكربت بصلاحية root:  sudo ./install.sh"
-  exit 1
-fi
+ROOT_DIR=/opt/ai-company
+REPO_URL="https://github.com/menokemo/AI-company-"
+COMPOSE_FILE="$ROOT_DIR/infrastructure/docker-compose.yml"
+ENV_FILE="$ROOT_DIR/infrastructure/.env"
 
-# 2) الأدوات المطلوبة
-if ! command -v openssl >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-  log "تثبيت الأدوات المطلوبة (curl, openssl)..."
-  apt-get update -y
-  apt-get install -y curl openssl ca-certificates
-fi
+# ── اكتشاف IP الـ VM ─────────────────────────────────────────────────────
+HOST_IP=$(hostname -I | awk '{print $1}')
+log "VM IP: $HOST_IP"
 
-# 3) Docker
-if ! command -v docker >/dev/null 2>&1; then
-  log "تثبيت Docker..."
-  curl -fsSL https://get.docker.com | sh
-  systemctl enable --now docker
+# ── المتطلبات ─────────────────────────────────────────────────────────────
+log "التحقق من المتطلبات..."
+command -v docker  >/dev/null 2>&1 || err "Docker غير مثبّت"
+command -v git     >/dev/null 2>&1 || err "Git غير مثبّت"
+docker compose version >/dev/null 2>&1 || err "Docker Compose V2 غير مثبّت"
+
+# ── استنساخ/تحديث الريبو ─────────────────────────────────────────────────
+if [ -d "$ROOT_DIR/.git" ]; then
+    log "تحديث الريبو..."
+    git -C "$ROOT_DIR" pull --ff-only
 else
-  log "Docker موجود بالفعل."
+    log "استنساخ الريبو..."
+    git clone "$REPO_URL" "$ROOT_DIR"
 fi
 
-if ! docker compose version >/dev/null 2>&1; then
-  err "إضافة 'docker compose' غير متاحة. رجاءً حدّث Docker إلى إصدار يدعمها."
-  exit 1
+# ── إنشاء المجلدات اللازمة ────────────────────────────────────────────────
+log "إنشاء المجلدات..."
+mkdir -p "$ROOT_DIR/data/openhands"
+mkdir -p "$ROOT_DIR/data/workspace"
+mkdir -p "$ROOT_DIR/config/mockups"
+chown -R 1000:1000 "$ROOT_DIR/data/openhands"
+chown -R 1000:1000 "$ROOT_DIR/data/workspace"
+
+# ── إنشاء models.json فارغ إذا لم يوجد ──────────────────────────────────
+if [ ! -f "$ROOT_DIR/config/models.json" ]; then
+    echo '{}' > "$ROOT_DIR/config/models.json"
+    log "models.json جديد — اختر الموديلات من لوحة التحكم بعد التثبيت"
 fi
 
-# 4) الأسرار وملف البيئة
-if [ -f "$ENV_FILE" ]; then
-  log "ملف .env موجود — سيُحافَظ على الأسرار الحالية (لن يُعاد توليدها)."
+# ── إضافة HOST_IP لـ .env ─────────────────────────────────────────────────
+if ! grep -q "^HOST_IP=" "$ENV_FILE" 2>/dev/null; then
+    echo "HOST_IP=$HOST_IP" >> "$ENV_FILE"
+    log "HOST_IP=$HOST_IP أُضيف لـ .env"
 else
-  log "توليد الأسرار وإنشاء ملف .env..."
-  IP="$(hostname -I | awk '{print $1}')"
-  PG_PASS="$(openssl rand -hex 24)"
-  cat > "$ENV_FILE" <<EOF
-# صور Docker
-INFISICAL_IMAGE_TAG=latest
-LITELLM_IMAGE_TAG=main-stable
-PORTAINER_IMAGE_TAG=lts
-POSTGRES_IMAGE_TAG=14-alpine
-REDIS_IMAGE_TAG=7-alpine
-DIND_IMAGE_TAG=27-dind
-OPENHANDS_IMAGE_TAG=0.38
-
-# Postgres (Infisical)
-POSTGRES_USER=infisical
-POSTGRES_PASSWORD=$PG_PASS
-POSTGRES_DB=infisical
-
-# Infisical
-ENCRYPTION_KEY=$(openssl rand -hex 16)
-AUTH_SECRET=$(openssl rand -base64 32)
-DB_CONNECTION_URI=postgres://infisical:$PG_PASS@infisical-db:5432/infisical
-REDIS_URL=redis://infisical-redis:6379
-SITE_URL=http://$IP:8080
-OTEL_TELEMETRY_COLLECTION_ENABLED=false
-
-# LiteLLM
-LITELLM_MASTER_KEY=sk-$(openssl rand -hex 24)
-WEBUI_SECRET_KEY=$(openssl rand -hex 32)
-OPEN_WEBUI_IMAGE_TAG=main
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-OPENROUTER_API_KEY=
-GITHUB_TOKEN=
-GIT_USERNAME=
-EOF
-  chmod 600 "$ENV_FILE"
-  log "تم إنشاء .env وحمايته (600)."
+    sed -i "s/^HOST_IP=.*/HOST_IP=$HOST_IP/" "$ENV_FILE"
 fi
 
-# 5) رفع الخدمات
+# ── تحميل agent-server مسبقاً ────────────────────────────────────────────
+log "تحميل OpenHands agent-server (قد يأخذ بعض الوقت)..."
+docker pull ghcr.io/openhands/agent-server:1.25.0-python || warn "فشل تحميل agent-server"
 
-# ── Auto-sync: مزامنة Infisical كل ساعة ───────────────────────────────
-log "إعداد المزامنة التلقائية (كل ساعة)..."
-SYNC_CMD="0 * * * * bash /opt/ai-company/secrets-sync/infisical-sync.sh >> /var/log/ai-company-sync.log 2>&1"
-( crontab -l 2>/dev/null | grep -v "infisical-sync"; echo "$SYNC_CMD" ) | crontab -
-log "تم إعداد cron job."
+# ── config.toml لـ OpenHands ──────────────────────────────────────────────
+python3 "$ROOT_DIR/secrets-sync/generate-openhands-config.py"
 
-log "تنزيل الصور..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
-log "تجهيز مساحة عمل OpenHands V1..."
-mkdir -p /opt/ai-company/data/openhands
-mkdir -p /opt/ai-company/data/workspace
-chown -R 1000:1000 /opt/ai-company/data/openhands
-chmod 755 /opt/ai-company/data/openhands
-log "تحميل agent-server image مسبقاً..."
-docker pull ghcr.io/openhands/agent-server:1.25.0-python || true
-
+# ── تشغيل كل الخدمات ─────────────────────────────────────────────────────
 log "تشغيل الخدمات..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
-# 6) ملخّص الوصول
-IP="$(hostname -I | awk '{print $1}')"
-echo
-log "اكتمل التثبيت. الواجهات المتاحة:"
-echo "  • Portainer : https://$IP:9443"
-echo "  • Infisical : http://$IP:8080"
-echo "  • LiteLLM   : http://$IP:4000"
-echo
-warn "الخطوات التالية:"
-echo "  1) افتح Infisical وأنشئ حساب المدير."
-echo "  2) أضف مفاتيح الـ API (مثل ANTHROPIC_API_KEY) داخل Infisical."
-echo "  3) سنربط LiteLLM والوكلاء بـ Infisical في الطبقة التالية."
+# ── انتظار جاهزية الخدمات ────────────────────────────────────────────────
+log "انتظار جاهزية الخدمات..."
+sleep 30
+
+# ── ربط GitHub بـ OpenHands ──────────────────────────────────────────────
+GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$ENV_FILE" | cut -d= -f2-)
+GIT_USERNAME=$(grep "^GIT_USERNAME=" "$ENV_FILE" | cut -d= -f2-)
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GIT_USERNAME" ]; then
+    log "ربط GitHub بـ OpenHands..."
+    curl -sf -X POST "http://localhost:3000/api/v1/secrets/git-providers" \
+        -H "Content-Type: application/json" \
+        -d "{\"provider_tokens\": {\"github\": {\"token\": \"$GITHUB_TOKEN\", \"user_id\": \"$GIT_USERNAME\", \"host\": \"github.com\"}}}" \
+        >/dev/null 2>&1 && log "GitHub متصل بـ OpenHands" || warn "فشل ربط GitHub"
+fi
+
+# ── ملخص ─────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${BLUE}══════════════════════════════════════════${NC}"
+echo -e "${GREEN}✅ التثبيت اكتمل!${NC}"
+echo ""
+echo -e "  🏠 لوحة التحكم:    ${BLUE}http://$HOST_IP${NC}"
+echo -e "  💬 Open WebUI:     ${BLUE}http://$HOST_IP:8888${NC}"
+echo -e "  🤖 OpenHands:      ${BLUE}http://$HOST_IP:3000${NC}"
+echo -e "  🔑 Infisical:      ${BLUE}http://$HOST_IP:8080${NC}"
+echo -e "  🔀 LiteLLM:        ${BLUE}http://$HOST_IP:4000${NC}"
+echo -e "  👥 Crew Pipeline:  ${BLUE}http://$HOST_IP:9002${NC}"
+echo ""
+echo -e "${YELLOW}⚠️  خطوة مهمة بعد التثبيت:${NC}"
+echo -e "   1. افتح OpenHands (:3000) → Settings → LLM"
+echo -e "      Name: litellm | Model: openai/claude"
+echo -e "      Base URL: http://$HOST_IP:4000 | API Key: من Infisical"
+echo -e "   2. افتح لوحة التحكم (:80) → اختر موديل لكل موظف"
+echo -e "${BLUE}══════════════════════════════════════════${NC}"

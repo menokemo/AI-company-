@@ -13,6 +13,28 @@
 
 ---
 
+## [0.28.0] — Mockups + Sync كامل للريبو
+
+### Mockup Generation يعمل ✅
+- 3 تصميمات HTML (modern, vibrant, professional) تُولَّد من الـ designer agent
+- تُخزَّن في `/opt/ai-company/config/mockups/`
+- متاحة عبر `http://HOST_IP:9000/mockups/{id}`
+
+### إصلاحات جوهرية
+- BUG: `{{...}}` double braces في `generate_design_options` → fixed
+- BUG: Anthropic model name غلط (`claude-sonnet-4-5-20251022` → `claude-sonnet-4-6`)
+- BUG: HOST_IP=192.168.2.29 hardcoded → `${HOST_IP}` من .env
+
+### Sync الريبو مع الـ VM
+- `docker-compose.yml`: نسخة كاملة ومحدّثة تعكس الواقع الحالي
+- `install.sh`: يشمل كل الخدمات الجديدة + HOST_IP تلقائي + GitHub setup
+
+### ملاحظة مهمة بعد التثبيت
+1. OpenHands Settings → LLM → أضف profile مرة واحدة
+2. لوحة التحكم → اختر موديل لكل موظف من Crew Pipeline
+
+---
+
 ## [0.27.0] — إضافة CrewAI Pipeline متكامل
 
 ### الموظفون الجدد (6 agents)
