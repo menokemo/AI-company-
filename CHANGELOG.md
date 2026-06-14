@@ -13,6 +13,28 @@
 
 ---
 
+## [0.29.0] — Install Script كامل + صفر hardcoded
+
+### install.sh الجديد
+- يأخذ `--github-token` فقط كـ input
+- يولّد كل الـ secrets تلقائياً (random): LITELLM_MASTER_KEY, WEBUI_SECRET_KEY, DB passwords, JWT secrets
+- يكتبها في `.env`
+- يشغّل كل الخدمات
+- يربط GitHub بـ OpenHands تلقائياً
+- يعرض ملخص كامل مع الخطوات التالية
+
+### صفر hardcoded
+- docker-compose: `env_file: .env` في كل service
+- litellm library: يقرأ API keys من env تلقائياً
+- AGENT_SERVER_IMAGE_TAG: من .env (قابل للتغيير من Infisical)
+
+### الخطوات اليدوية بعد التثبيت (مرة واحدة)
+1. Infisical: إضافة API keys الخارجية
+2. OpenHands Settings: إعداد LLM
+3. لوحة التحكم: اختيار موديلات Crew
+
+---
+
 ## [0.28.0] — Mockups + Sync كامل للريبو
 
 ### Mockup Generation يعمل ✅

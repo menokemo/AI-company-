@@ -152,7 +152,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - AGENT_SERVER_IMAGE_REPOSITORY=ghcr.io/openhands/agent-server
-      - AGENT_SERVER_IMAGE_TAG=1.25.0-python
+      - AGENT_SERVER_IMAGE_TAG=${AGENT_SERVER_IMAGE_TAG:-1.25.0-python}
       - WORKSPACE_MOUNT_PATH=/opt/workspace
       - SANDBOX_ENV_GITHUB_TOKEN=${GITHUB_TOKEN}
       - SANDBOX_ENV_GIT_USERNAME=${GIT_USERNAME}
