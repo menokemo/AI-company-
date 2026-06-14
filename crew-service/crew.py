@@ -203,14 +203,26 @@ def generate_design_options(project: dict) -> dict:
     ]
 
     def call_llm(model_str, prompt_text):
-        import litellm
-        resp = litellm.completion(
-            model=model_str,
-            messages=[{"role": "user", "content": prompt_text}],
-            max_tokens=4096,
-            temperature=0.7,
-        )
-        return resp.choices[0].message.content
+        import requests as _r
+        msgs = [{"role": "user", "content": prompt_text}]
+        if "/" in model_str:
+            import litellm
+            resp = litellm.completion(
+                model=model_str, messages=msgs,
+                max_tokens=4096, temperature=0.7,
+            )
+            return resp.choices[0].message.content
+        else:
+            lurl = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
+            lkey = os.environ.get("LITELLM_API_KEY", "")
+            r = _r.post(lurl + "/v1/chat/completions",
+                headers={"Authorization": "Bearer " + lkey, "Content-Type": "application/json"},
+                json={"model": model_str, "messages": msgs, "max_tokens": 4096},
+                timeout=120)
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
+
+
     mockups = []
     for i, (style_key, style_name, accent, bg) in enumerate(styles, 1):
         prompt = """You are a world-class UI/UX designer creating a Figma-quality prototype.
