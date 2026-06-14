@@ -101,13 +101,11 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3>🔐 Access Credentials</h3>
       <button id="creds-toggle" onclick="toggleCredentials()"
-        style="background:var(--surface);border:1px solid var(--border);color:var(--muted);
-               border-radius:8px;padding:5px 14px;cursor:pointer;font-size:13px">Show</button>
+        style="background:var(--accent);color:#fff;border:none;
+               border-radius:8px;padding:6px 18px;cursor:pointer;font-size:13px">Show</button>
     </div>
     <div id="creds-section" style="display:none">
-      <div id="creds-grid" style="display:grid;gap:10px">
-        <p style="color:var(--muted);font-size:13px">Loading...</p>
-      </div>
+      <div id="creds-grid" style="display:grid;gap:14px"></div>
     </div>
   </div>
 
@@ -339,17 +337,23 @@ loadProviders().then(() => loadModels());
 
 // ── Credentials Section ─────────────────────────────────────────
 let credsLoaded = false;
+
 function toggleCredentials(){
   const sec = document.getElementById("creds-section");
   const btn = document.getElementById("creds-toggle");
-  if(sec.style.display === "none"){
-    sec.style.display = "block";
-    btn.textContent = "Hide";
-    if(!credsLoaded) loadCredentials();
-  } else {
-    sec.style.display = "none";
-    btn.textContent = "Show";
-  }
+  const show = sec.style.display === "none";
+  sec.style.display = show ? "block" : "none";
+  btn.textContent = show ? "Hide" : "Show";
+  if(show && !credsLoaded) loadCredentials();
+}
+
+function copyVal(btn, val){
+  navigator.clipboard.writeText(val).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = "✓ Copied";
+    btn.style.color = "var(--green)";
+    setTimeout(()=>{ btn.textContent = orig; btn.style.color = ""; }, 2000);
+  });
 }
 
 async function loadCredentials(){
@@ -357,30 +361,34 @@ async function loadCredentials(){
     const r = await fetch(`http://${host}:9000/system/credentials`);
     const d = await r.json();
     const g = document.getElementById("creds-grid");
-    const services = [
-      {name:"💬 Open WebUI",  data: d.open_webui},
-      {name:"🔑 Infisical",   data: d.infisical},
-      {name:"🔀 LiteLLM",     data: d.litellm},
-      {name:"🐳 Portainer",   data: d.portainer},
+    const sections = [
+      {name:"💬 Open WebUI",  fields: d.open_webui},
+      {name:"🔑 Infisical",   fields: d.infisical},
+      {name:"🔀 LiteLLM",     fields: d.litellm},
+      {name:"🐳 Portainer",   fields: d.portainer},
     ];
-    g.innerHTML = services.map(svc => `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
-        <div style="font-weight:700;margin-bottom:10px">${svc.name}</div>
-        ${Object.entries(svc.data).map(([k,v]) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;
-                      padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-            <span style="color:var(--muted)">${k}</span>
-            <span style="font-family:monospace;background:var(--bg);padding:3px 8px;
-                         border-radius:4px;cursor:pointer;user-select:all"
-                  onclick="navigator.clipboard.writeText('${v}')"
-                  title="Click to copy">${v}</span>
+    g.innerHTML = sections.map(sec => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:var(--surface);font-weight:700;font-size:14px;
+                    border-bottom:1px solid var(--border)">${sec.name}</div>
+        ${Object.entries(sec.fields).map(([k,v]) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;
+                      border-bottom:1px solid var(--border)">
+            <span style="color:var(--muted);font-size:12px;width:90px;text-align:right;
+                         flex-shrink:0">${k}</span>
+            <span style="font-family:monospace;font-size:13px;flex:1;word-break:break-all">${v}</span>
+            <button onclick="copyVal(this,'${v.replace(/\/g,'\\').replace(/'/g,"\'")}')"
+              style="background:var(--surface);border:1px solid var(--border);
+                     color:var(--text);border-radius:6px;padding:4px 12px;
+                     cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0">Copy</button>
           </div>
         `).join("")}
       </div>
     `).join("");
     credsLoaded = true;
   }catch(e){
-    document.getElementById("creds-grid").innerHTML = `<p style="color:var(--red)">Error loading credentials</p>`;
+    document.getElementById("creds-grid").innerHTML =
+      `<p style="color:var(--red);padding:12px">❌ ${e.message}</p>`;
   }
 }
 
