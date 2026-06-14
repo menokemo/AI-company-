@@ -241,14 +241,16 @@ let PROVIDERS = {};  // تُحمَّل أوتوماتيك من الـ API
 
 async function loadProviders(){
   try{
-    const r = await fetch(`http://${host}:9000/config/providers`);
-    PROVIDERS = await r.json();
+    const r = await fetch(`http://${host}:9000/config/providers?refresh=1`);
+    const data = await r.json();
+    // يعرض المزوّدين سواء مُهيَّأين أو لأ
+    PROVIDERS = data;
   }catch(e){
-    // fallback لو الـ API مش متاح
+    // fallback عام لو الـ API مش متاح
     PROVIDERS = {
-      "anthropic": {label:"Anthropic 🟠", models:["claude-sonnet-4-5-20251022","claude-3-5-sonnet-20241022","claude-3-opus-20240229"]},
-      "openai":    {label:"OpenAI 🟢",    models:["gpt-4o","gpt-4o-mini","o3-mini"]},
-      "openrouter":{label:"OpenRouter 🔵",models:["auto","deepseek/deepseek-r1","meta-llama/llama-3.3-70b-instruct"]}
+      "anthropic":  {label:"Anthropic 🟠",  models:[], configured:false, message:"تحقق من اتصال tools-api"},
+      "openai":     {label:"OpenAI 🟢",     models:[], configured:false, message:"تحقق من اتصال tools-api"},
+      "openrouter": {label:"OpenRouter 🔵", models:[], configured:false, message:"تحقق من اتصال tools-api"},
     };
   }
 }
@@ -277,10 +279,13 @@ async function loadModels(){
       const {provider,model} = parseModel(cur);
       const div = document.createElement("div");
       div.style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;";
-      const provOpts = Object.entries(PROVIDERS).map(([k,v])=>
-        `<option value="${k}"${k===provider?" selected":""}>${v.label}</option>`).join("");
-      const mods = PROVIDERS[provider]?.models||[model];
-      const modOpts = mods.map(m=>`<option${m===model?" selected":""}>${m}</option>`).join("");
+      const provOpts = Object.entries(PROVIDERS).map(([k,v])=>{
+        const badge = v.configured===false ? " ⚠️" : "";
+        return `<option value="${k}"${k===provider?" selected":""}>${v.label}${badge}</option>`;
+      }).join("");
+      const mods = PROVIDERS[provider]?.models||[];
+      const notConfiguredMsg = mods.length===0 ? `<option disabled>${PROVIDERS[provider]?.message||"أضف API Key في Infisical"}</option>` : "";
+      const modOpts = notConfiguredMsg || mods.map(m=>`<option${m===model?" selected":""}>${m}</option>`).join("");
       div.innerHTML=`
         <div style="font-size:13px;font-weight:700;margin-bottom:10px">${info.icon} ${info.ar}</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">المزوّد</div>

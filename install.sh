@@ -197,6 +197,15 @@ for attempt in 1 2 3 4 5; do
 done
 [ "$GH_LINKED" = false ] && warn "فشل ربط GitHub — شغّل: sudo bash $ROOT_DIR/secrets-sync/infisical-sync.sh"
 
+# ── ١٢. تشغيل Infisical sync تلقائياً لو credentials موجودة ──────────────
+INFISICAL_CLIENT_ID=$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2-)
+if [ -n "$INFISICAL_CLIENT_ID" ]; then
+    info "Infisical credentials موجودة — تشغيل sync تلقائي..."
+    bash "$ROOT_DIR/secrets-sync/infisical-sync.sh" && log "Sync اكتمل — كل الـ secrets محدّثة" || warn "فشل Sync — شغّله يدوياً بعد إعداد Infisical"
+else
+    warn "لم يتم sync من Infisical — أضف credentials وشغّل sync يدوياً"
+fi
+
 # ── ١٢. ملخص التثبيت ─────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"

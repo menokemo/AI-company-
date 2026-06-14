@@ -88,6 +88,19 @@ setup_openhands_github() {
     fi
 }
 
+log "إعادة تشغيل الخدمات المتأثرة بالـ secrets..."
+docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
+    --env-file "$ENV_FILE" \
+    up -d --force-recreate tools-api crew-service litellm open-webui 2>/dev/null || true
+
+log "ربط GitHub بـ OpenHands بعد sync..."
+sleep 10
+GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$ENV_FILE" | cut -d= -f2-)
+GIT_USERNAME=$(grep "^GIT_USERNAME=" "$ENV_FILE" | cut -d= -f2-)
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GIT_USERNAME" ]; then
+    setup_openhands_github "$GITHUB_TOKEN" "$GIT_USERNAME"
+fi
+
 log "تم الربط. لإعادة المزامنة بعد أي تعديل في Infisical، شغّل نفس الأمر."
 
 # ربط GitHub بـ OpenHands

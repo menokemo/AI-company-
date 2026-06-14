@@ -19,12 +19,15 @@ def save_mockup(html: str, project: str, style: str, mid: int) -> str:
 
 _providers_cache = {"data": {}, "ts": 0}
 
-def _read_env() -> dict:
-    """يقرأ من env مباشرة — API keys مُحقَنة من docker-compose/Infisical."""
-    return dict(os.environ)
+# المزوّدون المعروفون مع endpoints الخاصة بهم
+# الأسماء مش secret — هي الـ standard litellm provider IDs
+_KNOWN_PROVIDERS = {
+    "anthropic":  {"label":"Anthropic 🟠","url":"https://api.anthropic.com/v1/models","headers_fn":lambda k:{"x-api-key":k,"anthropic-version":"2023-06-01"},"data_path":"data"},
+    "openai":     {"label":"OpenAI 🟢",   "url":"https://api.openai.com/v1/models",  "headers_fn":lambda k:{"Authorization":"Bearer "+k},"data_path":"data"},
+    "openrouter": {"label":"OpenRouter 🔵","url":"https://openrouter.ai/api/v1/models","headers_fn":lambda k:{"Authorization":"Bearer "+k},"data_path":"data"},
+}
 
 def _fetch_models_from_url(url: str, headers: dict, data_path: str = "data", id_field: str = "id") -> list:
-    """جلب الموديلات من أي endpoint عام."""
     req = urllib.request.Request(url)
     for k, v in headers.items(): req.add_header(k, v)
     with urllib.request.urlopen(req, timeout=10) as r:
@@ -33,61 +36,50 @@ def _fetch_models_from_url(url: str, headers: dict, data_path: str = "data", id_
         return [m[id_field] for m in items if isinstance(m, dict) and id_field in m]
 
 def get_available_providers(force_refresh: bool = False) -> dict:
-    """يجيب كل الموديلات مباشرة من API كل مزوّد — بدون hardcoded."""
+    """
+    يكتشف المزوّدين تلقائياً من env:
+    - أي *_API_KEY موجود وطويل → يجيب موديلاته
+    - إذا لم يُهيَّأ → يعرضه كـ 'not_configured' مع رسالة
+    """
     import time
     global _providers_cache
     if not force_refresh and _providers_cache["data"] and (time.time() - _providers_cache["ts"]) < 3600:
         return _providers_cache["data"]
 
-    env = _read_env()
+    env = dict(os.environ)
     result = {}
-    errors = {}
 
-    # ── Anthropic ────────────────────────────────────────────────────────
-    key = env.get("ANTHROPIC_API_KEY","")
-    if len(key) > 10:
-        try:
-            models = _fetch_models_from_url(
-                "https://api.anthropic.com/v1/models",
-                {"x-api-key": key, "anthropic-version": "2023-06-01"},
-                data_path="data", id_field="id"
-            )
-            result["anthropic"] = {"label":"Anthropic 🟠","models":sorted(models,reverse=True),"count":len(models)}
-        except Exception as e:
-            errors["anthropic"] = str(e)
-
-    # ── OpenAI ────────────────────────────────────────────────────────────
-    key = env.get("OPENAI_API_KEY","")
-    if len(key) > 10:
-        try:
-            all_models = _fetch_models_from_url(
-                "https://api.openai.com/v1/models",
-                {"Authorization": f"Bearer {key}"},
-                data_path="data", id_field="id"
-            )
-            # إزالة موديلات غير النصية (embedding, whisper, dall-e, tts)
-            chat_models = [m for m in all_models if not any(
-                x in m for x in ["embedding","whisper","dall-e","tts-","babbage","davinci","ada"]
-            )]
-            result["openai"] = {"label":"OpenAI 🟢","models":sorted(chat_models,reverse=True),"count":len(chat_models)}
-        except Exception as e:
-            errors["openai"] = str(e)
-
-    # ── OpenRouter ────────────────────────────────────────────────────────
-    key = env.get("OPENROUTER_API_KEY","")
-    if len(key) > 10:
-        try:
-            models = _fetch_models_from_url(
-                "https://openrouter.ai/api/v1/models",
-                {"Authorization": f"Bearer {key}"},
-                data_path="data", id_field="id"
-            )
-            result["openrouter"] = {"label":"OpenRouter 🔵","models":sorted(models),"count":len(models)}
-        except Exception as e:
-            errors["openrouter"] = str(e)
-
-    if errors:
-        result["_errors"] = errors
+    for provider_id, info in _KNOWN_PROVIDERS.items():
+        env_key = provider_id.upper() + "_API_KEY"
+        key_val = env.get(env_key, "")
+        if len(key_val) > 10:
+            try:
+                models = _fetch_models_from_url(
+                    info["url"], info["headers_fn"](key_val), info["data_path"]
+                )
+                # تصفية موديلات OpenAI غير النصية
+                if provider_id == "openai":
+                    models = [m for m in models if not any(
+                        x in m for x in ["embedding","whisper","dall-e","tts-","babbage","davinci","ada"]
+                    )]
+                result[provider_id] = {
+                    "label": info["label"],
+                    "models": sorted(models, reverse=True),
+                    "count": len(models),
+                    "configured": True,
+                }
+            except Exception as e:
+                result[provider_id] = {
+                    "label": info["label"], "models": [], "count": 0,
+                    "configured": True, "error": str(e),
+                }
+        else:
+            # مش مُهيَّأ — اعرضه مع رسالة للمستخدم
+            result[provider_id] = {
+                "label": info["label"], "models": [], "count": 0,
+                "configured": False,
+                "message": f"أضف {env_key} في Infisical ثم شغّل sync",
+            }
 
     _providers_cache = {"data": result, "ts": time.time()}
     return result
