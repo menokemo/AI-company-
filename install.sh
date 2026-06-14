@@ -116,6 +116,10 @@ OPENAI_API_KEY=$(get_env "OPENAI_API_KEY" "")
 OPENROUTER_API_KEY=$(get_env "OPENROUTER_API_KEY" "")
 AGENT_SERVER_IMAGE_TAG=$(get_env "AGENT_SERVER_IMAGE_TAG" "1.25.0-python")
 
+# Open WebUI admin credentials
+WEBUI_ADMIN_EMAIL=$(get_env "WEBUI_ADMIN_EMAIL" "admin@ai-company.local")
+WEBUI_ADMIN_PASSWORD=$(get_env "WEBUI_ADMIN_PASSWORD" "$(echo "$WEBUI_SECRET_KEY" | cut -c1-16)")
+
 log "Secrets prepared"
 
 # ── 5. Write .env (using Python to avoid encoding issues) ─────────────────
@@ -168,6 +172,10 @@ lines = [
     "",
     "# OpenHands",
     "AGENT_SERVER_IMAGE_TAG=${AGENT_SERVER_IMAGE_TAG}",
+    "",
+    "# Open WebUI Admin",
+    "WEBUI_ADMIN_EMAIL=${WEBUI_ADMIN_EMAIL}",
+    "WEBUI_ADMIN_PASSWORD=${WEBUI_ADMIN_PASSWORD}",
 ]
 with open("${ENV_FILE}", "w") as f:
     f.write("\n".join(lines) + "\n")
