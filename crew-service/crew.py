@@ -203,59 +203,14 @@ def generate_design_options(project: dict) -> dict:
     ]
 
     def call_llm(model_str, prompt_text):
-        parts = model_str.split("/", 1)
-        prov  = parts[0].lower() if len(parts) > 1 else ""
-        mid   = parts[1] if len(parts) > 1 else model_str
-        msgs  = [{"role": "user", "content": prompt_text}]
-        if prov == "anthropic":
-            r = _req.post("https://api.anthropic.com/v1/messages",
-                headers={"x-api-key": env_keys.get("ANTHROPIC_API_KEY",""),
-                         "anthropic-version": "2023-06-01",
-                         "Content-Type": "application/json"},
-                json={"model": mid, "messages": msgs, "max_tokens": 4000},
-                timeout=120)
-            r.raise_for_status()
-            return r.json()["content"][0]["text"]
-        if prov == "openai":
-            key = env_keys.get("OPENAI_API_KEY","")
-            # جرّب Chat Completions أولاً، لو فشل جرّب Responses API (gpt-5.x)
-            r = _req.post("https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
-                json={"model": mid, "messages": msgs, "max_tokens": 4000, "temperature": 0.7},
-                timeout=120)
-            if r.status_code == 400:
-                # Responses API للموديلات الجديدة (gpt-5.x, o1, o3, o4...)
-                r2 = _req.post("https://api.openai.com/v1/responses",
-                    headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
-                    json={"model": mid, "input": msgs[-1]["content"]},
-                    timeout=120)
-                r2.raise_for_status()
-                d2 = r2.json()
-                out = d2.get("output", [])
-                for item in out:
-                    if item.get("type") == "message":
-                        for c in item.get("content", []):
-                            if c.get("type") == "output_text":
-                                return c["text"]
-                return str(out)
-            r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"]
-        if prov == "openrouter":
-            r = _req.post("https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": "Bearer " + env_keys.get("OPENROUTER_API_KEY",""),
-                         "Content-Type": "application/json"},
-                json={"model": mid, "messages": msgs, "max_tokens": 4000},
-                timeout=120)
-            r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"]
-        r = _req.post(LITELLM_URL + "/v1/chat/completions",
-            headers={"Authorization": "Bearer " + LITELLM_KEY,
-                     "Content-Type": "application/json"},
-            json={"model": model_str, "messages": msgs, "max_tokens": 4000},
-            timeout=120)
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
-
+        import litellm
+        resp = litellm.completion(
+            model=model_str,
+            messages=[{"role": "user", "content": prompt_text}],
+            max_tokens=4096,
+            temperature=0.7,
+        )
+        return resp.choices[0].message.content
     mockups = []
     for i, (style_key, style_name, accent, bg) in enumerate(styles, 1):
         prompt = """You are a world-class UI/UX designer creating a Figma-quality prototype.
