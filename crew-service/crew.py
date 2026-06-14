@@ -190,7 +190,6 @@ def generate_design_options(project: dict) -> dict:
     requirements = project.get("requirements", "")
     LITELLM_URL  = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
     LITELLM_KEY  = os.environ.get("LITELLM_API_KEY", "")
-    env_keys     = dict(os.environ)
     try:
         with open(os.environ.get("CONFIG_FILE", "/app/config/models.json")) as f:
             import json as _j; cfg = _j.load(f)

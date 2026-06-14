@@ -4,8 +4,6 @@ pipeline.py — Multi-agent pipeline بدون crewai.
 """
 import os, json, requests
 
-LITELLM_URL = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
-LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "")
 
 def _model(env_key: str, default: str = "claude") -> str:
     return os.environ.get(env_key, default)
