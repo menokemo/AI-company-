@@ -204,14 +204,37 @@ for i in $(seq 1 30); do
 done
 log "Infisical ready"
 
-# ── 11. Auto-sync from Infisical (if credentials provided) ───────────────
+# ── 11. Auto-setup Infisical + sync ──────────────────────────────────────
+info "Auto-configuring Infisical..."
+python3 "$ROOT_DIR/secrets-sync/setup-infisical.py"     && log "Infisical configured automatically"     || warn "Auto-config failed — manual setup needed at http://localhost:8080"
+
+# Re-read credentials (might have been created by setup-infisical.py)
+INFISICAL_CLIENT_ID=$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
+INFISICAL_CLIENT_SECRET=$(grep "^INFISICAL_CLIENT_SECRET=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
+
+# Use provided args if auto-setup didn't get credentials
+[ -z "$INFISICAL_CLIENT_ID" ]     && INFISICAL_CLIENT_ID="$INFISICAL_ID"
+[ -z "$INFISICAL_CLIENT_SECRET" ] && INFISICAL_CLIENT_SECRET="$INFISICAL_SECRET"
+
 if [ -n "$INFISICAL_CLIENT_ID" ] && [ -n "$INFISICAL_CLIENT_SECRET" ]; then
+    # Update .env with final credentials
+    python3 - << CREDEOF
+import re
+env = open("$ENV_FILE").read()
+for k,v in [("INFISICAL_CLIENT_ID","$INFISICAL_CLIENT_ID"),
+            ("INFISICAL_CLIENT_SECRET","$INFISICAL_CLIENT_SECRET"),
+            ("INFISICAL_PROJECT_ID","$INFISICAL_PROJECT_ID")]:
+    if f"{k}=" in env:
+        env = re.sub(f"^{k}=.*", f"{k}={v}", env, flags=re.MULTILINE)
+    else:
+        env += f"
+{k}={v}"
+open("$ENV_FILE","w").write(env)
+CREDEOF
     info "Running Infisical sync..."
-    bash "$ROOT_DIR/secrets-sync/infisical-sync.sh" \
-        && log "Infisical sync completed — API keys loaded" \
-        || warn "Infisical sync failed — run manually: sudo bash $ROOT_DIR/secrets-sync/infisical-sync.sh"
+    bash "$ROOT_DIR/secrets-sync/infisical-sync.sh"         && log "Infisical sync completed — API keys loaded"         || warn "Infisical sync failed — run: sudo bash $ROOT_DIR/secrets-sync/infisical-sync.sh"
 else
-    warn "No Infisical credentials — add API keys via Infisical UI then run sync"
+    warn "No Infisical credentials yet — open http://$(hostname -I | awk '{print $1}'):8080 to configure"
 fi
 
 # ── 12. Link GitHub to OpenHands ─────────────────────────────────────────
