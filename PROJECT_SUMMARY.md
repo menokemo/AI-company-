@@ -164,4 +164,33 @@ GitHub branch → Pull Request → مراجعة → merge لـ main
 - OpenHands يكتب الكود على branch جديد (مش main مباشرة)
 - ده best practice — الكود يُراجع قبل الـ merge
 - المستقبل: إضافة auto Pull Request creation
+---
+
+## ✅ الحالة الحالية — يونيو 2026
+
+### التثبيت
+```bash
+TOKEN="ghp_xxx" && \
+curl -sf -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/vnd.github.raw+json" \
+  "https://raw.githubusercontent.com/menokemo/AI-company-/main/install.sh" \
+  -o /tmp/install.sh && \
+sudo bash /tmp/install.sh --github-token "$TOKEN"
+```
+
+### ما يحدث تلقائياً
+- توليد كل الـ secrets (LITELLM_MASTER_KEY, WEBUI_SECRET_KEY, DB passwords)
+- تشغيل 12 خدمة
+- ربط GitHub بـ OpenHands
+
+### الخطوات اليدوية (مرة واحدة بعد التثبيت)
+1. Infisical (:8080): إضافة ANTHROPIC_API_KEY, GITHUB_TOKEN, GIT_USERNAME
+2. OpenHands (:3000): Settings → LLM → openai/claude | http://HOST_IP:4000
+3. لوحة التحكم (:80): اختيار موديل لكل موظف من Crew
+
+### صفر hardcoded
+- docker-compose: `env_file: .env` في كل service
+- litellm library: يقرأ API keys من env تلقائياً
+- models.json: فارغ — المستخدم يملأه من لوحة التحكم
+- HOST_IP: يُكتشف تلقائياً من `hostname -I`
 

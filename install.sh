@@ -181,12 +181,21 @@ for i in $(seq 1 30); do
 done
 
 # ── ١١. ربط GitHub بـ OpenHands ──────────────────────────────────────────
-info "ربط GitHub بـ OpenHands..."
-sleep 20  # انتظار OpenHands
-curl -sf -X POST "http://localhost:3000/api/v1/secrets/git-providers" \
-    -H "Content-Type: application/json" \
-    -d "{\"provider_tokens\":{\"github\":{\"token\":\"$GITHUB_TOKEN\",\"user_id\":\"menokemo\",\"host\":\"github.com\"}}}" \
-    >/dev/null 2>&1 && log "GitHub متصل بـ OpenHands" || warn "فشل ربط GitHub (أضف يدوياً)"
+info "ربط GitHub بـ OpenHands (محاولات متعددة)..."
+GH_LINKED=false
+for attempt in 1 2 3 4 5; do
+    sleep 15
+    if curl -sf -X POST "http://localhost:3000/api/v1/secrets/git-providers" \
+        -H "Content-Type: application/json" \
+        -d "{\"provider_tokens\":{\"github\":{\"token\":\"$GITHUB_TOKEN\",\"user_id\":\"$GIT_USERNAME\",\"host\":\"github.com\"}}}" \
+        >/dev/null 2>&1; then
+        log "GitHub متصل بـ OpenHands (محاولة $attempt)"
+        GH_LINKED=true
+        break
+    fi
+    info "محاولة $attempt فشلت، إعادة المحاولة..."
+done
+[ "$GH_LINKED" = false ] && warn "فشل ربط GitHub — شغّل: sudo bash $ROOT_DIR/secrets-sync/infisical-sync.sh"
 
 # ── ١٢. ملخص التثبيت ─────────────────────────────────────────────────────
 echo ""
