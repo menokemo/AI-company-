@@ -184,8 +184,8 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 log "All services started"
 
 # ── 10. Auto-setup Infisical ─────────────────────────────────────────────
-info "Setting up Infisical..."
-sleep 30
+info "Waiting for services to initialize (60s)..."
+sleep 60
 python3 "$ROOT_DIR/secrets-sync/setup-infisical.py" \
     && log "Infisical configured" \
     || warn "Infisical auto-setup failed — open http://$HOST_IP:8080 to configure manually"
