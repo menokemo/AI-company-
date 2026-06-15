@@ -335,6 +335,16 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 self.json({"success":False,"error":str(e)})
             return
+        if self.path == "/config/prompts":
+            try:
+                pf = CONFIG_FILE.replace("models.json","agent-prompts.json")
+                existing = json.loads(open(pf).read()) if os.path.exists(pf) else {}
+                for k,v in b.items():
+                    if k in existing: existing[k]["prompt"] = v
+                open(pf,"w",encoding="utf-8").write(json.dumps(existing, ensure_ascii=False, indent=2))
+                self.json({"success":True})
+            except Exception as e: self.json({"success":False,"error":str(e)})
+            return
         if self.path == "/config/models":
             if write_config(b):
                 self.json({"success": True, "config": read_config()})
