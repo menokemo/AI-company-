@@ -184,11 +184,24 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 log "All services started"
 
 # ── 10. Auto-setup Infisical ─────────────────────────────────────────────
-info "Waiting for services to initialize (90s)..."
-sleep 90
-python3 "$ROOT_DIR/secrets-sync/setup-infisical.py" \
-    && log "Infisical configured" \
-    || warn "Infisical auto-setup failed — open http://$HOST_IP:8080 to configure manually"
+info "Waiting for services to initialize..."
+# ننتظر حتى Infisical يكون فعلاً جاهزاً (max 4 minutes)
+INFISICAL_READY=false
+for i in $(seq 1 48); do
+    sleep 5
+    STATUS=$(curl -sf http://localhost:8080/api/status 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin).get('message',''))" 2>/dev/null)
+    if [ "$STATUS" = "Ok" ]; then
+        log "Infisical ready (${i}x5s)"
+        INFISICAL_READY=true
+        break
+    fi
+    [ $((i % 6)) -eq 0 ] && info "Still waiting for Infisical... (${i}x5s)"
+done
+if [ "$INFISICAL_READY" = true ]; then
+    python3 "$ROOT_DIR/secrets-sync/setup-infisical.py"         && log "Infisical configured"         || warn "Infisical auto-setup failed — open http://$HOST_IP:8080 to configure manually"
+else
+    warn "Infisical not ready — open http://$HOST_IP:8080 to configure manually"
+fi
 
 # Reload credentials that setup-infisical.py may have saved
 INFISICAL_CLIENT_ID=$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
