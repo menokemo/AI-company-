@@ -189,7 +189,11 @@ info "Waiting for services to initialize..."
 INFISICAL_READY=false
 for i in $(seq 1 48); do
     sleep 5
-    STATUS=$(curl -sf http://localhost:8080/api/status 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin).get('message',''))" 2>/dev/null)
+    if RESP=$(curl -sf http://localhost:8080/api/status 2>/dev/null); then
+        STATUS=$(echo "$RESP" | python3 -c "import json,sys;print(json.load(sys.stdin).get('message',''))" 2>/dev/null || echo "")
+    else
+        STATUS=""
+    fi
     if [ "$STATUS" = "Ok" ]; then
         log "Infisical ready (${i}x5s)"
         INFISICAL_READY=true
