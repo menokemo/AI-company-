@@ -1,3 +1,18 @@
+## [1.1.0] — 2026-06-15 — Fresh Install Complete
+
+### إصلاحات
+- Infisical healthcheck: `/api/v1/healthcheck` → `/api/status`
+- ENCRYPTION_KEY: 64 chars → 32 chars (openssl rand -hex 16)
+- SyntaxError في credentials section (regex في onclick)
+- Nginx proxy `/api/` للـ domain access
+
+### جديد
+- **Infisical Setup Form** في لوحة التحكم — بدون terminal
+- `/system/configure` endpoint في tools-api
+- `checkService` متوافق مع كل المتصفحات (AbortController بدل AbortSignal.timeout)
+
+---
+
 ## [1.0.0] — 2026-06-14 — نظام التثبيت الكامل
 
 ### الإنجاز الكبير: تثبيت بأمر واحد
