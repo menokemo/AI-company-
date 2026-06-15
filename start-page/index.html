@@ -161,6 +161,10 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
 
 <script>
 const host = window.location.hostname;
+// API base: use relative path when accessed via domain, direct when local IP
+const apiBase = (host.includes('.') && !host.match(/^\d+\.\d+\.\d+\.\d+$/))
+    ? '/api'
+    : 'http://' + host + ':9000';
 
 const services = [
   { name:"AI Company Chat", icon:"💬", desc:"ابدأ مشروعك — تكلم وشوف الكود يتكتب",      port:8888, proto:"http", path:"/" },
@@ -264,7 +268,7 @@ let PROVIDERS = {};  // تُحمَّل أوتوماتيك من الـ API
 
 async function loadProviders(){
   try{
-    const r = await fetch(`http://${host}:9000/config/providers?refresh=1`);
+    const r = await fetch(`${apiBase}/config/providers?refresh=1`);
     const data = await r.json();
     // يعرض المزوّدين سواء مُهيَّأين أو لأ
     PROVIDERS = data;
@@ -294,7 +298,7 @@ function onProviderChange(key){
 
 async function loadModels(){
   try{
-    const r = await fetch(`http://${host}:9000/config/models`);
+    const r = await fetch(`${apiBase}/config/models`);
     const cfg = await r.json();
     const g = document.getElementById("models-grid"); g.innerHTML="";
     Object.entries(MODEL_LABELS).forEach(([key,info])=>{
@@ -333,7 +337,7 @@ async function saveModels(){
     if(p&&m) data[k]=`${p.value}/${m.value}`;
   });
   try{
-    const r=await fetch(`http://${host}:9000/config/models`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    const r=await fetch(`${apiBase}/config/models`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
     const res=await r.json();
     const msg=document.getElementById("save-msg");
     msg.style.display="block";
@@ -354,7 +358,7 @@ async function runSync(){
   out.style.display = "block";
   out.textContent = "Running infisical-sync.sh...";
   try{
-    const r = await fetch(`http://${host}:9000/system/sync`, {method:"POST"});
+    const r = await fetch(`${apiBase}/system/sync`, {method:"POST"});
     const d = await r.json();
     out.textContent = d.output || (d.success ? "✅ Sync completed!" : "❌ " + d.error);
     if(d.success){
@@ -407,7 +411,7 @@ function copyVal(btn, val){
 
 async function loadCredentials(){
   try{
-    const r = await fetch(`http://${host}:9000/system/credentials`);
+    const r = await fetch(`${apiBase}/system/credentials`);
     const d = await r.json();
     const g = document.getElementById("creds-grid");
     const sections = [
