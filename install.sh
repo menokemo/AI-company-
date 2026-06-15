@@ -229,18 +229,18 @@ if [ -n "$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" | cut -d= -f2-)" ]; then
         || warn "Sync failed — add API keys in Infisical then use the Sync button in dashboard"
 fi
 
-# ── 12. Auto-setup Open WebUI ─────────────────────────────────────────────
-info "Setting up Open WebUI..."
-sleep 10
-python3 "$ROOT_DIR/secrets-sync/setup-openwebui.py" \
-    && log "Open WebUI configured" \
-    || warn "Open WebUI setup failed — open http://$HOST_IP:8888 to create account"
-
-# ── 13. Auto-setup Portainer ──────────────────────────────────────────────
-info "Setting up Portainer..."
-python3 "$ROOT_DIR/secrets-sync/setup-portainer.py" \
-    && log "Portainer configured" \
-    || warn "Portainer setup failed — open https://$HOST_IP:9443 to configure"
+# ── 12. Post-install setup in background ──────────────────────────────────
+info "Scheduling post-install setup in background (5 min)..."
+nohup bash -c '
+    sleep 300
+    echo "[post-install] Setting up Open WebUI..."
+    python3 '"$ROOT_DIR"'/secrets-sync/setup-openwebui.py         && echo "[post-install] ✓ Open WebUI configured"         || echo "[post-install] ! Open WebUI setup failed"
+    echo "[post-install] Setting up Portainer..."
+    docker compose -f '"$COMPOSE_FILE"' --env-file '"$ENV_FILE"'         up -d --force-recreate portainer 2>/dev/null
+    sleep 15
+    python3 '"$ROOT_DIR"'/secrets-sync/setup-portainer.py         && echo "[post-install] ✓ Portainer configured"         || echo "[post-install] ! Portainer: open https://'"$HOST_IP"':9443"
+' >> /var/log/ai-company-setup.log 2>&1 &
+log "Post-install running in background — tail -f /var/log/ai-company-setup.log"
 
 # ── 14. Link GitHub to OpenHands ─────────────────────────────────────────
 info "Linking GitHub to OpenHands..."
