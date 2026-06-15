@@ -16,6 +16,44 @@
 > قاعدة: أي حل يُجرَّب ولا يحلّ المشكلة، يُزال فورًا قبل تجربة حل آخر، للحفاظ على نظافة الكود.
 
 
+
+---
+
+## جلسة 2026-06-15 — Fresh Install + Dashboard Improvements
+
+### BUG: Infisical healthcheck endpoint خاطئ
+- **المشكلة:** `setup-infisical.py` يستخدم `/api/v1/healthcheck` لكنه غير موجود
+- **الحل:** تغيير للـ `/api/status` (الـ endpoint الصحيح في v1.0.0)
+
+### BUG: ENCRYPTION_KEY طول خاطئ
+- **المشكلة:** `openssl rand -hex 32` ينتج 64 حرف لكن Infisical يحتاج 32 حرف
+- **الحل:** تغيير لـ `openssl rand -hex 16` (ينتج 32 حرف = 16 bytes)
+
+### BUG: DNS لم يُضبط لـ flow.mkdd.nl
+- **المشكلة:** "This site can't be reached" رغم أن NPM إعداداته صحيحة
+- **الحل:** إضافة A record في DNS provider
+
+### BUG: dashboard JS يستخدم hostname كـ API base مع الدومين
+- **المشكلة:** `http://domain.com:9000` غير متاح من خارج الشبكة
+- **الحل:** nginx proxy `/api/` → tools-api + JS يستخدم `/api` مع الدومين
+
+### BUG: SyntaxError في loadCredentials (regex في onclick)
+- **المشكلة:** `onclick="copyVal(this,'${v.replace(/\/g,...')}')"` يكسر HTML parser
+- **الحل:** استخدام `data-val` attribute بدلاً من inline regex
+
+### FEATURE: Infisical Setup Form في لوحة التحكم
+- **المميزة:** المستخدم يدخل Machine Identity credentials مباشرةً من الـ dashboard
+- **بدون terminal:** `POST /system/configure` يحفظ في .env ثم يشغّل sync تلقائياً
+
+### Flow نهائي بعد التثبيت
+1. `sudo bash install.sh --github-token TOKEN`
+2. لوحة التحكم → Access Credentials → Show (لرؤية كل الـ credentials)
+3. Infisical → Sign Up (بالـ credentials المولّدة)
+4. Infisical → Machine Identity → Create → Copy ID + Secret
+5. لوحة التحكم → Infisical Setup → أدخل الـ credentials → Save & Sync
+6. Infisical → أضف API keys → لوحة التحكم → Sync Now
+
+---
 ---
 
 ## جلسة 2026-06-14 — Install Script + Providers + Zero Hardcoded
