@@ -101,17 +101,47 @@ def main():
 
     if status in (200, 201):
         print("  [✓] Tool uploaded successfully!")
-        # Save credentials to .env
-        for k, v in [("WEBUI_ADMIN_EMAIL", admin_email),
-                     ("WEBUI_ADMIN_PASSWORD", admin_password)]:
-            cur = get_env(k)
-            if not cur:
-                with open(ENV_FILE, "a") as f:
-                    f.write(f"\n{k}={v}")
-        return 0
     else:
         print(f"  [!] Tool upload failed ({status}): {data}")
-        return 1
+
+    # ── Create Project Manager model ─────────────────────────────
+    print("  Creating Project Manager model...")
+    try:
+        sys_prompt = open("/opt/ai-company/tools-api/system-prompt.md",
+                          encoding="utf-8").read()
+    except:
+        sys_prompt = "You are an AI Project Manager. Help clients build software applications."
+
+    # جيب أول موديل متاح من LiteLLM
+    base_model = "openai/claude"
+
+    model_data, model_status = req("POST", "/api/v1/models/create", {
+        "id": "ai-company-project-manager",
+        "name": "🤖 مدير المشروع — AI Company",
+        "base_model_id": base_model,
+        "meta": {
+            "description": "مدير مشاريع ذكاء اصطناعي — يحوّل أفكارك لتطبيقات حقيقية",
+            "capabilities": {"tools": True}
+        },
+        "params": {
+            "system": sys_prompt,
+            "temperature": 0.7
+        }
+    }, token=token)
+
+    if model_status in (200, 201):
+        print("  [✓] Project Manager model created!")
+    else:
+        print(f"  [!] Model creation failed ({model_status}): {str(model_data)[:100]}")
+
+    # Save credentials to .env
+    for k, v in [("WEBUI_ADMIN_EMAIL", admin_email),
+                 ("WEBUI_ADMIN_PASSWORD", admin_password)]:
+        cur = get_env(k)
+        if not cur:
+            with open(ENV_FILE, "a") as f:
+                f.write(f"\n{k}={v}")
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())
