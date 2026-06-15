@@ -148,7 +148,7 @@ def create_repo(name, description=""):
         return {"error": f"GitHub error {e.code}: {err.get('message','')}"}
 
 
-def start_coding(full_name, task):
+def start_coding(full_name, task, description="", document_content=""):
     """إرسال مهمة لـ OpenHands V1 API"""
     msg = (
         f"Work on this GitHub repository: {full_name}\n\n"
