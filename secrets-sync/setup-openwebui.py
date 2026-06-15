@@ -112,8 +112,17 @@ def main():
     except:
         sys_prompt = "You are an AI Project Manager. Help clients build software applications."
 
-    # جيب أول موديل متاح من LiteLLM
-    base_model = "openai/claude"
+    # جيب الموديل من config/models.json
+    try:
+        import json as _json
+        models_cfg = _json.loads(open("/opt/ai-company/config/models.json").read())
+        base_model = models_cfg.get("project_manager", {}).get("model", "")
+    except:
+        base_model = ""
+
+    if not base_model:
+        print("  [!] No model configured for project_manager — set it in Dashboard → Models first")
+        return 0
 
     model_data, model_status = req("POST", "/api/v1/models/create", {
         "id": "ai-company-project-manager",
