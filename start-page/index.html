@@ -109,6 +109,21 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
     </div>
   </div>
 
+  <!-- ── Agent Prompts ── -->
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3>💬 Agent Prompts</h3>
+      <button onclick="savePrompts()"
+        style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 18px;cursor:pointer;font-size:13px;font-weight:600">
+        💾 Save
+      </button>
+    </div>
+    <div id="prompts-grid" style="display:grid;gap:14px">
+      <p style="color:var(--muted);font-size:13px">Loading...</p>
+    </div>
+    <div id="prompts-msg" style="display:none;margin-top:10px;font-size:13px;padding:8px;border-radius:6px"></div>
+  </div>
+
   <!-- ── لوحة إعدادات الموديلات ── -->
   <div class="section" id="models-section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -361,6 +376,47 @@ async function saveModels(){
 }
 
 loadProviders().then(() => loadModels());
+loadPrompts();
+
+// ── Agent Prompts ────────────────────────────────────────────────
+async function loadPrompts(){
+  try{
+    const r = await fetch(apiBase + "/config/prompts");
+    const d = await r.json();
+    const g = document.getElementById("prompts-grid");
+    if(!Object.keys(d).length){ g.innerHTML="<p style='color:var(--muted);font-size:13px'>No prompts configured</p>"; return; }
+    g.innerHTML = Object.entries(d).map(([key,info]) => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <div style="padding:10px 14px;background:var(--surface);font-weight:700;font-size:13px;border-bottom:1px solid var(--border)">
+          ${info.name}
+        </div>
+        <div style="padding:12px 14px">
+          <textarea id="prompt-${key}" rows="4"
+            style="width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);
+                   border:1px solid var(--border);border-radius:6px;padding:8px;
+                   font-size:12px;font-family:monospace;resize:vertical;line-height:1.5"
+          >${info.prompt || ""}</textarea>
+        </div>
+      </div>
+    `).join("");
+  }catch(e){ document.getElementById("prompts-grid").innerHTML=`<p style='color:var(--red)'>Error: ${e.message}</p>`; }
+}
+
+async function savePrompts(){
+  const msg = document.getElementById("prompts-msg");
+  const data = {};
+  document.querySelectorAll("[id^='prompt-']").forEach(el=>{
+    data[el.id.replace("prompt-","")] = el.value;
+  });
+  try{
+    const r = await fetch(apiBase + "/config/prompts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    const d = await r.json();
+    msg.style.display = "block";
+    msg.style.background = d.success ? "rgba(80,200,120,0.15)" : "rgba(255,80,80,0.15)";
+    msg.textContent = d.success ? "✅ Prompts saved!" : "❌ " + d.error;
+    setTimeout(()=>msg.style.display="none", 3000);
+  }catch(e){ msg.style.display="block"; msg.textContent="❌ "+e.message; }
+}
 
 // ── Infisical Configuration ──────────────────────────────────────
 async function saveInfisicalConfig(){
