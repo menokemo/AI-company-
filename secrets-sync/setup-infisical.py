@@ -46,7 +46,7 @@ def req(method, path, data=None, token=None, base=None):
         try: return json.loads(e.read().decode()), e.code
         except: return {}, e.code
 
-def wait_ready(max_wait=120):
+def wait_ready(max_wait=180):
     for _ in range(max_wait // 3):
         try:
             urllib.request.urlopen(f"{BASE}/api/v1/healthcheck", timeout=3)
