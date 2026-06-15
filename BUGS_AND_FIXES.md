@@ -17,6 +17,28 @@
 
 
 
+
+---
+
+## جلسة 2026-06-15 (مساء) — Agent Prompts + Infisical Timing
+
+### BUG: GET /config/prompts في do_POST بدل do_GET
+- **المشكلة:** endpoint الـ prompts أُضيف داخل `do_POST` handler فأرجع 404 للـ GET requests
+- **الحل:** نقل الـ GET handler لـ `do_GET`
+
+### BUG: Infisical setup يفشل بسبب timing
+- **المشكلة:** sleep 90s + 180s wait = 270s لا يكفي في بعض الأنظمة
+- **الحل:** loop ذكي يفحص `/api/status` كل 5 ثواني حتى 4 دقائق
+- **سلوك جديد:** لو Infisical جاهز → يكمل الـ setup، لو لا → يُخبر المستخدم
+
+### FEATURE: Agent Prompts قابلة للتعديل
+- 8 agents: doc_analyzer, researcher, designer, planner, problem_solver, reviewer, project_manager, coder
+- GET/POST /config/prompts في tools-api
+- لوحة التحكم تعرض textarea لكل agent
+- زر Save يحفظ في config/agent-prompts.json
+- pipeline.py يقرأ منه تلقائياً
+
+---
 ---
 
 ## جلسة 2026-06-15 — Fresh Install + Dashboard Improvements
