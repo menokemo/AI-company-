@@ -2,7 +2,7 @@
 """Auto-setup Portainer admin account."""
 import json, os, sys, time, urllib.request, urllib.error
 
-BASE     = "http://localhost:9000"
+BASE     = "https://localhost:9443"
 ENV_FILE = "/opt/ai-company/infrastructure/.env"
 
 def get_env(key):
@@ -27,22 +27,27 @@ def set_env(key, value):
     open(ENV_FILE, "w").writelines(new_lines)
 
 def req(method, path, data=None, token=None):
+    import ssl
     url = BASE + path
     body = json.dumps(data).encode() if data else None
     r = urllib.request.Request(url, data=body, method=method)
     r.add_header("Content-Type", "application/json")
     if token: r.add_header("Authorization", f"Bearer {token}")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
     try:
-        with urllib.request.urlopen(r, timeout=10) as resp:
+        with urllib.request.urlopen(r, timeout=10, context=ctx) as resp:
             return json.load(resp), resp.status
     except urllib.error.HTTPError as e:
         try: return json.loads(e.read().decode()), e.code
         except: return {}, e.code
 
-def wait_ready(max_wait=60):
+def wait_ready(max_wait=120):
     for _ in range(max_wait // 3):
         try:
-            urllib.request.urlopen(f"{BASE}/api/status", timeout=3)
+            import ssl; ctx2=ssl.create_default_context(); ctx2.check_hostname=False; ctx2.verify_mode=ssl.CERT_NONE
+            urllib.request.urlopen(f"{BASE}/api/status", timeout=3, context=ctx2)
             return True
         except: pass
         time.sleep(3)
