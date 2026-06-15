@@ -60,6 +60,12 @@ services:
     image: infisical/infisical:latest
     container_name: ai-infisical
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
     depends_on:
       infisical-db:
         condition: service_healthy
