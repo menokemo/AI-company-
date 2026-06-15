@@ -212,6 +212,13 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
     def do_GET(self):
+        if self.path == "/config/prompts":
+            try:
+                pf = CONFIG_FILE.replace("models.json","agent-prompts.json")
+                self.json(json.loads(open(pf).read()))
+            except Exception as e:
+                self.json({"error": str(e)})
+            return
         if self.path.startswith("/mockups/"):
             mock_id = self.path.split("/mockups/")[1].rstrip("/")
             html_file = pathlib.Path(f"{MOCKUPS_DIR}/{mock_id}.html")
