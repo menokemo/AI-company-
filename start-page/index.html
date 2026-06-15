@@ -349,6 +349,55 @@ async function saveModels(){
 
 loadProviders().then(() => loadModels());
 
+// ── Infisical Configuration ──────────────────────────────────────
+async function saveInfisicalConfig(){
+  const clientId     = document.getElementById("inf-client-id").value.trim();
+  const clientSecret = document.getElementById("inf-client-secret").value.trim();
+  const projectId    = document.getElementById("inf-project-id").value.trim();
+  const status       = document.getElementById("inf-status");
+
+  if(!clientId || !clientSecret || !projectId){
+    status.style.display = "block";
+    status.style.background = "rgba(255,80,80,0.15)";
+    status.textContent = "❌ Please fill all fields";
+    return;
+  }
+
+  status.style.display = "block";
+  status.style.background = "rgba(100,200,255,0.1)";
+  status.textContent = "⏳ Saving credentials...";
+
+  try{
+    // Save credentials
+    const r = await fetch(apiBase + "/system/configure", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        INFISICAL_CLIENT_ID:     clientId,
+        INFISICAL_CLIENT_SECRET: clientSecret,
+        INFISICAL_PROJECT_ID:    projectId,
+      })
+    });
+    const d = await r.json();
+    if(!d.success){ status.textContent = "❌ Save failed"; return; }
+
+    status.textContent = "⏳ Running sync...";
+    // Run sync
+    const r2 = await fetch(apiBase + "/system/sync", {method:"POST"});
+    const d2 = await r2.json();
+    status.style.background = d2.success ? "rgba(80,200,120,0.15)" : "rgba(255,80,80,0.15)";
+    status.textContent = d2.success ? "✅ Saved & synced! API keys loaded." : "⚠️ Saved but sync failed: " + d2.error;
+    if(d2.success){
+      document.getElementById("inf-client-id").value = "";
+      document.getElementById("inf-client-secret").value = "";
+      document.getElementById("inf-project-id").value = "";
+      setTimeout(()=>{ credsLoaded=false; loadProviders().then(()=>loadModels()); }, 1000);
+    }
+  }catch(e){
+    status.textContent = "❌ Error: " + e.message;
+  }
+}
+
 // ── Sync from Infisical ──────────────────────────────────────────
 async function runSync(){
   const btn = document.getElementById("sync-btn");
