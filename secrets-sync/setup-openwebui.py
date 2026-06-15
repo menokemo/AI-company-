@@ -93,6 +93,7 @@ def main():
     # Upload tool
     print("  Uploading AI Company Tools...")
     data, status = req("POST", "/api/v1/tools/create", {
+        "id":          "ai-company-tools",
         "name":        "AI Company Tools",
         "content":     tool_content,
         "meta":        {"description": "Generate mockups and create projects"},
