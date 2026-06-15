@@ -121,6 +121,19 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
     <p id="save-msg" style="margin-top:10px;color:var(--green);display:none">✅ تم الحفظ!</p>
   </div>
 
+  <!-- Infisical Setup Form -->
+  <div class="section">
+    <h3>⚙️ Infisical Setup</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Enter Machine Identity credentials to enable sync.</p>
+    <div style="display:grid;gap:10px">
+      <input id="inf-cid" placeholder="Client ID" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+      <input id="inf-cs" type="password" placeholder="Client Secret" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+      <input id="inf-pid" placeholder="Project ID" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+      <button onclick="saveInfisicalConfig()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:14px;font-weight:600">💾 Save & Sync</button>
+      <div id="inf-status" style="display:none;font-size:13px;padding:8px;border-radius:6px"></div>
+    </div>
+  </div>
+
   <div class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3>🔄 Sync from Infisical</h3>
@@ -351,9 +364,9 @@ loadProviders().then(() => loadModels());
 
 // ── Infisical Configuration ──────────────────────────────────────
 async function saveInfisicalConfig(){
-  const clientId     = document.getElementById("inf-client-id").value.trim();
-  const clientSecret = document.getElementById("inf-client-secret").value.trim();
-  const projectId    = document.getElementById("inf-project-id").value.trim();
+  const clientId     = document.getElementById("inf-cid").value.trim();
+  const clientSecret = document.getElementById("inf-cs").value.trim();
+  const projectId    = document.getElementById("inf-pid").value.trim();
   const status       = document.getElementById("inf-status");
 
   if(!clientId || !clientSecret || !projectId){
@@ -388,9 +401,9 @@ async function saveInfisicalConfig(){
     status.style.background = d2.success ? "rgba(80,200,120,0.15)" : "rgba(255,80,80,0.15)";
     status.textContent = d2.success ? "✅ Saved & synced! API keys loaded." : "⚠️ Saved but sync failed: " + d2.error;
     if(d2.success){
-      document.getElementById("inf-client-id").value = "";
-      document.getElementById("inf-client-secret").value = "";
-      document.getElementById("inf-project-id").value = "";
+      document.getElementById("inf-cid").value = "";
+      document.getElementById("inf-cs").value = "";
+      document.getElementById("inf-pid").value = "";
       setTimeout(()=>{ credsLoaded=false; loadProviders().then(()=>loadModels()); }, 1000);
     }
   }catch(e){
