@@ -49,7 +49,7 @@ def req(method, path, data=None, token=None, base=None):
 def wait_ready(max_wait=180):
     for _ in range(max_wait // 3):
         try:
-            urllib.request.urlopen(f"{BASE}/api/v1/healthcheck", timeout=3)
+            urllib.request.urlopen(f"{BASE}/api/status", timeout=3)
             return True
         except: pass
         time.sleep(3)
