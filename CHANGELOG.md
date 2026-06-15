@@ -1,3 +1,17 @@
+## [1.2.0] — 2026-06-15 — Agent Prompts Editor
+
+### جديد
+- **Agent Prompts Editor** في لوحة التحكم — تعديل prompt كل agent بدون كود
+- 8 agents: doc_analyzer, researcher, designer, planner, problem_solver, reviewer, project_manager, coder
+- `/config/prompts` GET+POST endpoints
+- `pipeline.py` يقرأ الـ prompts من `config/agent-prompts.json`
+
+### إصلاحات
+- Infisical timing: smart wait loop (فحص كل 5 ثواني × 48 = 4 دقائق)
+- GET /config/prompts كان في do_POST → نُقل لـ do_GET
+
+---
+
 ## [1.1.0] — 2026-06-15 — Fresh Install Complete
 
 ### إصلاحات
