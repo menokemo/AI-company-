@@ -88,7 +88,7 @@ def get_available_providers(force_refresh: bool = False) -> dict:
 PORT          = int(os.environ.get("PORT", "9000"))
 CONFIG_FILE   = os.environ.get("CONFIG_FILE", "/app/config/models.json")
 ENV_FILE      = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
-HOST_IP       = os.environ.get("HOST_IP", "192.168.2.29")
+HOST_IP       = os.environ.get("HOST_IP", "localhost")
 
 
 def read_config() -> dict:
