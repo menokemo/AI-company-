@@ -338,6 +338,27 @@ class H(BaseHTTPRequestHandler):
                 self.json({"success": False, "error": str(e)})
             return
 
+        if self.path == "/setup/project-manager":
+            try:
+                import subprocess
+                env = os.environ.copy()
+                try:
+                    for line in open(ENV_FILE):
+                        line = line.strip()
+                        if "=" in line and not line.startswith("#"):
+                            k, _, v = line.partition("=")
+                            if v: env[k.strip()] = v.strip()
+                except: pass
+                r2 = subprocess.run(
+                    ["/bin/bash", "-c",
+                     f"python3 {os.path.dirname(ENV_FILE).replace('infrastructure','secrets-sync')}/setup-openwebui.py"],
+                    capture_output=True, text=True, timeout=60, env=env
+                )
+                out = (r2.stdout + r2.stderr).strip()
+                self.json({"success": "Project Manager" in out or r2.returncode == 0, "output": out[-500:]})
+            except Exception as e:
+                self.json({"success": False, "error": str(e)})
+            return
         if self.path == "/system/configure":
             import re
             allowed = {"INFISICAL_CLIENT_ID","INFISICAL_CLIENT_SECRET","INFISICAL_PROJECT_ID",
