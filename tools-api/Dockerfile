@@ -1,5 +1,5 @@
 FROM python:3.12-alpine
-RUN apk add --no-cache bash curl
+RUN apk add --no-cache bash curl docker-cli
 WORKDIR /app
 COPY server.py .
 EXPOSE 9000
