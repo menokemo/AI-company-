@@ -190,7 +190,13 @@ for i in $(seq 1 120); do
     sleep 5
     HEALTH=$(docker inspect ai-infisical --format="{{.State.Health.Status}}" 2>/dev/null || echo "")
     if [ "$HEALTH" = "healthy" ]; then
-        log "Infisical healthy! (${i}x5s)"
+        log "Infisical healthy via healthcheck! (${i}x5s)"
+        INFISICAL_READY=true
+        break
+    fi
+    # fallback: check API directly from host
+    if curl -s http://localhost:8080/api/status 2>/dev/null | grep -q '"message":"Ok"'; then
+        log "Infisical ready via API! (${i}x5s)"
         INFISICAL_READY=true
         break
     fi
