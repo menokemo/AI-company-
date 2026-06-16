@@ -249,7 +249,7 @@ class H(BaseHTTPRequestHandler):
             env = dict(os.environ)
             # قراءة من .env أيضاً
             try:
-                for line in open("/opt/ai-company/infrastructure/.env"):
+                for line in open(ENV_FILE):
                     line = line.strip()
                     if "=" in line and not line.startswith("#"):
                         k,_,v = line.partition("=")
@@ -321,7 +321,7 @@ class H(BaseHTTPRequestHandler):
                 # قراءة أحدث قيم من .env مباشرةً — بدون cache
                 env = os.environ.copy()
                 try:
-                    for line in open("/opt/ai-company/infrastructure/.env"):
+                    for line in open(ENV_FILE):
                         line = line.strip()
                         if "=" in line and not line.startswith("#"):
                             k, _, v = line.partition("=")
@@ -343,7 +343,7 @@ class H(BaseHTTPRequestHandler):
                        "GIT_USERNAME","GITHUB_TOKEN","ANTHROPIC_API_KEY",
                        "OPENAI_API_KEY","OPENROUTER_API_KEY","AGENT_SERVER_IMAGE_TAG"}
             saved = []
-            env_file = "/opt/ai-company/infrastructure/.env"
+            env_file = ENV_FILE
             for key, val in b.items():
                 if key in allowed and val:
                     try:
