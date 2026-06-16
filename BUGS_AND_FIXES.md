@@ -21,6 +21,24 @@
 
 
 
+
+---
+
+## جلسة 2026-06-16 (مساء) — Wizard + UX Fixes
+
+### FEATURE: Infisical Setup Wizard
+- **المشكلة:** المستخدم لا يعرف الفرق بين Identity ID والـ Universal Auth Client ID
+- **الحل:** Wizard تفاعلي بـ 6 خطوات مع تحذيرات واضحة
+
+### BUG: Wizard HTML لم يُضاف للمكان الصح
+- **المشكلة:** الـ old_section string في Python لم يطابق الـ HTML الفعلي (فرق في التعليقات)
+- **الحل:** مطابقة النص الحرفي الموجود في الملف
+
+### BUG: JS يعرض "undefined" بدل الـ sync error
+- **المشكلة:** `d2.error` غير موجود — الـ server يرجع `output` لا `error`
+- **الحل:** `d2.error || d2.output.slice(-150) || "unknown"`
+
+---
 ---
 
 ## جلسة 2026-06-16 (ليل) — Docker CLI + ENV_FILE + Sync Final Fix
