@@ -1,3 +1,16 @@
+## [1.3.1] — 2026-06-16 — Sync Button Fixes
+
+### إصلاحات
+- `/system/sync` + `/system/configure` نُقلوا لـ `do_POST`
+- `/system/configure` يكتب الـ .env على disk
+- tools-api Dockerfile: أضيف bash + curl
+- `${BASH_SOURCE[0]}` → `$0` (Alpine compatibility)
+- `INFISICAL_API_URL=http://ai-infisical:8080` في docker-compose
+- Volumes: `.env` + `secrets-sync/` مـ mounted في tools-api
+- Open WebUI tool id: `ai_company_tools` (لا hyphens)
+
+---
+
 ## [1.3.0] — 2026-06-16 — Background Setup + Fast Install
 
 ### التغيير الكبير: Install يخلص في دقيقتين
