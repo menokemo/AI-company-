@@ -245,31 +245,6 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/config/models":
             self.json(read_config())
             return
-        if self.path == "/system/configure":
-            # يحفظ أي key=value في .env
-            allowed = {"INFISICAL_CLIENT_ID","INFISICAL_CLIENT_SECRET","INFISICAL_PROJECT_ID",
-                       "GIT_USERNAME","GITHUB_TOKEN","ANTHROPIC_API_KEY",
-                       "OPENAI_API_KEY","OPENROUTER_API_KEY","AGENT_SERVER_IMAGE_TAG"}
-            saved = []
-            for key, val in b.items():
-                if key in allowed and val:
-                    # update .env
-                    import re
-                    env_file = "/opt/ai-company/infrastructure/.env"
-                    try:
-                        content = open(env_file).read()
-                        pattern = "^" + key + "="
-                        if re.search(pattern, content, re.MULTILINE):
-                            content = re.sub(pattern + ".*", key + "=" + val, content, flags=re.MULTILINE)
-                        else:
-                            content = content.rstrip() + "\n" + key + "=" + val + "\n"
-                        # update running container env
-                        os.environ[key] = val
-                        saved.append(key)
-                    except Exception as e:
-                        pass
-            self.json({"success": bool(saved), "saved": saved})
-            return
         if self.path == "/system/sync":
             import subprocess
             try:
@@ -351,6 +326,29 @@ class H(BaseHTTPRequestHandler):
                 open(pf,"w",encoding="utf-8").write(json.dumps(existing, ensure_ascii=False, indent=2))
                 self.json({"success":True})
             except Exception as e: self.json({"success":False,"error":str(e)})
+            return
+        if self.path == "/system/configure":
+            import re
+            allowed = {"INFISICAL_CLIENT_ID","INFISICAL_CLIENT_SECRET","INFISICAL_PROJECT_ID",
+                       "GIT_USERNAME","GITHUB_TOKEN","ANTHROPIC_API_KEY",
+                       "OPENAI_API_KEY","OPENROUTER_API_KEY","AGENT_SERVER_IMAGE_TAG"}
+            saved = []
+            env_file = "/opt/ai-company/infrastructure/.env"
+            for key, val in b.items():
+                if key in allowed and val:
+                    try:
+                        content = open(env_file).read()
+                        pattern = "^" + key + "="
+                        if re.search(pattern, content, re.MULTILINE):
+                            content = re.sub(pattern + ".*", key + "=" + val, content, flags=re.MULTILINE)
+                        else:
+                            content = content.rstrip() + "\n" + key + "=" + val + "\n"
+                        open(env_file, "w").write(content)
+                        os.environ[key] = val
+                        saved.append(key)
+                    except Exception as e:
+                        pass
+            self.json({"success": bool(saved), "saved": saved})
             return
         if self.path == "/config/models":
             if write_config(b):
