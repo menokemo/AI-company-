@@ -318,9 +318,18 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/system/sync":
             import subprocess
             try:
+                # قراءة أحدث قيم من .env مباشرةً — بدون cache
+                env = os.environ.copy()
+                try:
+                    for line in open("/opt/ai-company/infrastructure/.env"):
+                        line = line.strip()
+                        if "=" in line and not line.startswith("#"):
+                            k, _, v = line.partition("=")
+                            if v: env[k.strip()] = v.strip()
+                except: pass
                 r2 = subprocess.run(
-                    ["/bin/sh", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
-                    capture_output=True, text=True, timeout=120
+                    ["/bin/bash", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
+                    capture_output=True, text=True, timeout=120, env=env
                 )
                 out = (r2.stdout + r2.stderr).strip()
                 self.json({"success": r2.returncode == 0, "output": out[-2000:]})
