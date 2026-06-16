@@ -228,8 +228,84 @@ code { background:var(--bg); padding:1px 5px; border-radius:3px; font-size:11px;
     <p id="save-msg" style="margin-top:10px;color:var(--green);display:none">✅ تم الحفظ!</p>
   </div>
 
+  <!-- ── Infisical Setup Wizard ── -->
+  <div class="section" id="infisical-wizard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3>🔑 Infisical Setup — خطوة بخطوة</h3>
+      <button onclick="document.getElementById('infisical-wizard').style.display='none'"
+        style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:20px">
+      <div class="wstep active" onclick="wizardGo(1)">١</div>
+      <div class="wstep" onclick="wizardGo(2)">٢</div>
+      <div class="wstep" onclick="wizardGo(3)">٣</div>
+      <div class="wstep" onclick="wizardGo(4)">٤</div>
+      <div class="wstep" onclick="wizardGo(5)">٥</div>
+      <div class="wstep" onclick="wizardGo(6)">٦</div>
+      <div style="flex:1;align-self:center;height:2px;background:var(--border);border-radius:2px"></div>
+    </div>
+    <div id="wizard-content">
+      <div class="wpage" id="wpage-1">
+        <div class="wicon">🌐</div>
+        <h4>افتح Infisical وسجّل</h4>
+        <p>افتح <a href="#" onclick="window.open('http://'+host+':8080');return false" style="color:var(--accent)">Infisical ↗</a> واضغط <strong>Sign Up</strong></p>
+        <div class="wbox">
+          <div class="wrow"><span class="wlabel">Email</span><span id="w-email" class="wval">...</span><button class="wcopy" onclick="navigator.clipboard.writeText(document.getElementById('w-email').dataset.v||'');this.textContent='✓'">نسخ</button></div>
+          <div class="wrow"><span class="wlabel">Password</span><span id="w-pass" class="wval">••••</span><button class="wcopy" onclick="navigator.clipboard.writeText(document.getElementById('w-pass').dataset.v||'');this.textContent='✓'">نسخ</button></div>
+        </div>
+        <p class="wnote">⚠️ بعد التسجيل هيطلب منك تعمل Organization — سمّيه أي اسم</p>
+      </div>
+      <div class="wpage" id="wpage-2" style="display:none">
+        <div class="wicon">📁</div>
+        <h4>أنشئ Project</h4>
+        <p>من القايمة → <strong>Projects</strong> → <strong>Create Project</strong></p>
+        <div class="wbox" style="text-align:center;padding:16px"><code style="font-size:14px;color:var(--accent)">Name: ai-company</code></div>
+      </div>
+      <div class="wpage" id="wpage-3" style="display:none">
+        <div class="wicon">🤖</div>
+        <h4>أنشئ Machine Identity</h4>
+        <p><strong>Organization Settings</strong> → <strong>Machine Identities</strong> → <strong>Create</strong></p>
+        <div class="wbox">
+          <div class="wrow"><span class="wlabel">Name</span><span class="wval">ai-company-sync</span></div>
+          <div class="wrow"><span class="wlabel">Role</span><span class="wval" style="color:var(--green)">Admin ✓</span></div>
+        </div>
+      </div>
+      <div class="wpage" id="wpage-4" style="display:none">
+        <div class="wicon">🔐</div>
+        <h4>Universal Auth</h4>
+        <p>اضغط على الـ Identity → <strong>Authentication</strong> → <strong>Universal Auth</strong> → <strong>Configure</strong></p>
+        <div class="wbox" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.3)">
+          <p style="margin:0;font-size:13px;color:var(--red)">⚠️ <strong>Client ID</strong> في Universal Auth <u>مختلف</u> عن الـ Identity ID!</p>
+          <p style="margin:8px 0 0;font-size:12px">انسخ الـ Client ID من <strong>داخل Universal Auth</strong> — ثم اضغط <strong>Add Client Secret</strong></p>
+        </div>
+      </div>
+      <div class="wpage" id="wpage-5" style="display:none">
+        <div class="wicon">🏗️</div>
+        <h4>أضف Identity للـ Project</h4>
+        <p>Projects → ai-company → <strong>Access Control</strong> → <strong>Add Machine Identity</strong> → Role: <strong>Admin</strong></p>
+        <p class="wnote">انسخ الـ <strong>Project ID</strong> من الـ URL:<br><code style="font-size:11px">:8080/.../project/<strong style="color:var(--accent)">PROJECT_ID</strong>/secrets</code></p>
+      </div>
+      <div class="wpage" id="wpage-6" style="display:none">
+        <div class="wicon">✅</div>
+        <h4>أدخل الـ Credentials</h4>
+        <div style="display:grid;gap:10px;margin-top:8px">
+          <input id="w-cid" placeholder="Client ID (من Universal Auth)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+          <input id="w-cs" type="password" placeholder="Client Secret" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+          <input id="w-pid" placeholder="Project ID (من الـ URL)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:monospace">
+          <button onclick="wizardSave()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:14px;font-weight:600">💾 Save & Sync</button>
+          <div id="wizard-msg" style="display:none;font-size:13px;padding:8px;border-radius:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button onclick="wizardPrev()" id="w-prev" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 20px;cursor:pointer;display:none">← السابق</button>
+      <div></div>
+      <button onclick="wizardNext()" id="w-next" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:600">التالي →</button>
+    </div>
+  </div>
+
   <!-- Infisical Setup Form -->
-  <div class="section">
+  <div class="section" style="display:none">
     <h3>⚙️ Infisical Setup</h3>
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Enter Machine Identity credentials to enable sync.</p>
     <div style="display:grid;gap:10px">
