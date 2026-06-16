@@ -1,3 +1,11 @@
+## [1.3.2] — 2026-06-16 — Dashboard Getting Started + Logo
+
+### جديد
+- **🚀 Getting Started** — قسم في لوحة التحكم بخطوات واضحة بعد التثبيت
+- **MKDD Logo** — اللوجو في الـ header بتاع لوحة التحكم
+
+---
+
 ## [1.3.1] — 2026-06-16 — Sync Button Fixes
 
 ### إصلاحات
