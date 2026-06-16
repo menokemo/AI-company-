@@ -20,6 +20,30 @@
 
 
 
+
+---
+
+## جلسة 2026-06-16 (ليل) — Docker CLI + ENV_FILE + Sync Final Fix
+
+### BUG: `docker` command not found داخل tools-api container
+- **المشكلة:** infisical-sync.sh يحاول يعمل `docker compose restart` لكن docker CLI مش موجود في Alpine
+- **الحل:** `apk add --no-cache docker-cli` في الـ Dockerfile
+
+### BUG: `ENV_FILE` NameError في server.py
+- **المشكلة:** push متأخر مسح التعريف `ENV_FILE = os.environ.get("ENV_FILE_PATH", ...)`
+- **الحل:** إعادة إضافة التعريف في ثوابت الملف
+
+### BUG: HOST_IP hardcoded default
+- **المشكلة:** `HOST_IP = os.environ.get("HOST_IP", "192.168.2.29")` — default hardcoded
+- **الحل:** تغيير default لـ `"localhost"`
+
+### RESULT: Sync يشتغل الآن
+- يتصل بـ Infisical ✅
+- يسحب الـ API keys ✅  
+- يحدّث .env ✅
+- يعيد تشغيل الخدمات ✅
+
+---
 ---
 
 ## جلسة 2026-06-16 (مساء) — Sync Button + tools-api Fixes
