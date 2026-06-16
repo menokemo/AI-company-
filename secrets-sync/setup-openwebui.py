@@ -8,8 +8,9 @@ Auto-setup Open WebUI:
 import json, os, sys, time, urllib.request, urllib.error
 
 BASE     = "http://localhost:8888"
-ENV_FILE = "/opt/ai-company/infrastructure/.env"
-TOOL_FILE = "/opt/ai-company/tools-api/openwebui_tools.py"
+ENV_FILE  = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+BASE_DIR  = os.path.dirname(os.path.dirname(ENV_FILE))
+TOOL_FILE = os.path.join(BASE_DIR, "tools-api", "openwebui_tools.py")
 
 def get_env(key):
     try:
@@ -107,7 +108,7 @@ def main():
     # ── Create Project Manager model ─────────────────────────────
     print("  Creating Project Manager model...")
     try:
-        sys_prompt = open("/opt/ai-company/tools-api/system-prompt.md",
+        sys_prompt = open(os.path.join(BASE_DIR, "tools-api", "system-prompt.md"),
                           encoding="utf-8").read()
     except:
         sys_prompt = "You are an AI Project Manager. Help clients build software applications."
