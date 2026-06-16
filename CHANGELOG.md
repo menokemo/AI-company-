@@ -1,3 +1,18 @@
+## [1.5.0] — 2026-06-16 — Critical Fixes + Auto Project Manager
+
+### إصلاحات فورية
+- **Agent Prompts**: 6/6 agents موصولين بـ `agent-prompts.json`
+- **GIT_USERNAME**: يُجلب تلقائياً من GitHub API
+- **Sync exit code**: يرجع 0 دائماً لو الاتصال نجح
+- **Root check**: يُتجاهل داخل Docker containers
+
+### جديد
+- **🤖 إنشاء مدير المشروع**: زر يظهر بعد حفظ الموديلات
+- **⚠️ TTL Warning**: تذكير بتجديد Client Secret كل 90 يوم
+- **/setup/project-manager** endpoint في tools-api
+
+---
+
 ## [1.4.0] — 2026-06-16 — Infisical Setup Wizard
 
 ### جديد
