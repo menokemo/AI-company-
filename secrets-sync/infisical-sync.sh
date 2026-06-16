@@ -89,9 +89,14 @@ setup_openhands_github() {
 }
 
 log "إعادة تشغيل الخدمات المتأثرة بالـ secrets..."
-docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
-    --env-file "$ENV_FILE" \
-    up -d --force-recreate tools-api crew-service litellm open-webui 2>/dev/null || true
+if [ -f "/.dockerenv" ]; then
+    # داخل container — استخدام docker مباشرة بدون compose
+    docker restart ai-litellm ai-crew ai-tools-api 2>/dev/null || true
+else
+    docker compose -f "$ROOT_DIR/infrastructure/docker-compose.yml" \
+        --env-file "$ENV_FILE" \
+        up -d --force-recreate tools-api crew-service litellm open-webui 2>/dev/null || true
+fi
 
 log "ربط GitHub بـ OpenHands بعد sync..."
 sleep 10
