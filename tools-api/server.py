@@ -319,7 +319,7 @@ class H(BaseHTTPRequestHandler):
             import subprocess
             try:
                 r2 = subprocess.run(
-                    ["bash", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
+                    ["/bin/bash", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
                     capture_output=True, text=True, timeout=120
                 )
                 out = (r2.stdout + r2.stderr).strip()
