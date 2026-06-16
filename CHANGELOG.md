@@ -1,3 +1,22 @@
+## [1.4.0] — 2026-06-16 — Infisical Setup Wizard
+
+### جديد
+- **Infisical Setup Wizard** — دليل تفاعلي بـ 6 خطوات في لوحة التحكم
+  - خطوة ١: Sign Up بالـ credentials المولّدة (قابلة للنسخ)
+  - خطوة ٢: إنشاء Project
+  - خطوة ٣: إنشاء Machine Identity
+  - خطوة ٤: تفعيل Universal Auth + تحذير الـ Client ID الصح
+  - خطوة ٥: إضافة Identity للـ Project + Project ID من الـ URL
+  - خطوة ٦: إدخال الـ credentials + Save & Sync
+
+### إصلاحات
+- docker-cli في tools-api Dockerfile — sync يقدر يعمل docker restart
+- ENV_FILE constant في server.py (كان NameError)
+- HOST_IP default: `192.168.2.29` → `localhost`
+- JS يعرض الـ sync output الحقيقي مش "undefined"
+
+---
+
 ## [1.3.2] — 2026-06-16 — Dashboard Getting Started + Logo
 
 ### جديد
