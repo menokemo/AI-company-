@@ -142,6 +142,7 @@ services:
       - PORT=9000
     volumes:
       - /opt/ai-company/config:/app/config
+      - /opt/ai-company/infrastructure/.env:/opt/ai-company/infrastructure/.env
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "9000:9000"
