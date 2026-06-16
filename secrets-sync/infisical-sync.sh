@@ -15,7 +15,7 @@ COMPOSE_FILE="$INFRA_DIR/docker-compose.yml"
 log() { printf "\033[1;32m[+]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[x]\033[0m %s\n" "$*" >&2; }
 
-[ "$(id -u)" -eq 0 ] || { err "شغّله بصلاحية root:  sudo bash secrets-sync/infisical-sync.sh"; exit 1; }
+[ "$(id -u)" -eq 0 ] || [ -f "/.dockerenv" ] || { err "شغّله بصلاحية root:  sudo bash secrets-sync/infisical-sync.sh"; exit 1; }
 [ -f "$ENV_FILE" ] || { err ".env غير موجود — شغّل install.sh أولاً."; exit 1; }
 
 command -v python3 >/dev/null 2>&1 || { apt-get update -y && apt-get install -y python3; }
@@ -110,3 +110,5 @@ if [ -n "$gh_token" ] && [ -n "$gh_user" ]; then
     sleep 5  # انتظار OpenHands يشتغل
     setup_openhands_github "$gh_token" "$gh_user"
 fi
+
+exit 0
