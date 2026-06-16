@@ -51,6 +51,19 @@ h2 { font-size: 15px; color: var(--muted); font-weight: 500;
            border-radius: 14px; padding: 24px; margin-bottom: 20px; }
 .section h3 { font-size: 15px; margin-bottom: 16px; color: var(--muted); }
 .step-item { display:flex; gap:12px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); }
+.wstep { width:28px; height:28px; border-radius:50%; background:var(--surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--muted); cursor:pointer; flex-shrink:0; transition:.2s; }
+.wstep.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.wstep.done { background:var(--green); color:#fff; border-color:var(--green); }
+.wicon { font-size:40px; text-align:center; margin:10px 0; }
+.wpage h4 { text-align:center; font-size:16px; margin:8px 0 12px; }
+.wpage p { font-size:13px; color:var(--muted); margin:8px 0; line-height:1.7; }
+.wbox { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; margin:12px 0; }
+.wrow { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.wrow:last-child { border-bottom:none; }
+.wlabel { color:var(--muted); font-size:12px; }
+.wval { font-family:monospace; cursor:pointer; }
+.wcopy { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:4px; padding:2px 8px; cursor:pointer; font-size:11px; margin-right:4px; }
+.wnote { background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:6px; padding:8px 12px; font-size:12px; }
 .step-item:last-child { border-bottom:none; }
 .step-num { background:var(--surface); border:1px solid var(--border); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; color:var(--accent); }
 .step-desc { font-size:12px; color:var(--muted); margin:4px 0 0; line-height:1.6; }
@@ -455,6 +468,69 @@ async function saveModels(){
 }
 
 loadProviders().then(() => loadModels());
+loadPrompts();
+
+// ── Infisical Wizard ─────────────────────────────────────────────
+let wStep = 1;
+const wTotal = 6;
+
+async function wizardLoadCreds(){
+  try{
+    const r = await fetch(apiBase + "/system/credentials");
+    const d = await r.json();
+    const email = d.infisical?.email || "—";
+    const pass  = d.infisical?.password || "—";
+    const el = document.getElementById("w-email");
+    const pl = document.getElementById("w-pass");
+    if(el){ el.textContent = email; el.dataset.v = email; }
+    if(pl){ pl.textContent = "••••••••"; pl.dataset.v = pass; }
+  }catch(e){}
+}
+wizardLoadCreds();
+
+function wizardGo(n){
+  document.getElementById("wpage-"+wStep).style.display = "none";
+  document.querySelectorAll(".wstep").forEach((el,i)=>{
+    if(i+1 < n) el.className = "wstep done";
+    else if(i+1 === n) el.className = "wstep active";
+    else el.className = "wstep";
+  });
+  wStep = n;
+  document.getElementById("wpage-"+wStep).style.display = "block";
+  document.getElementById("w-prev").style.display = wStep > 1 ? "block" : "none";
+  document.getElementById("w-next").style.display = wStep < wTotal ? "block" : "none";
+  if(wStep === wTotal) wizardLoadCreds();
+}
+function wizardNext(){ if(wStep < wTotal) wizardGo(wStep+1); }
+function wizardPrev(){ if(wStep > 1) wizardGo(wStep-1); }
+
+async function wizardSave(){
+  const cid = document.getElementById("w-cid").value.trim();
+  const cs  = document.getElementById("w-cs").value.trim();
+  const pid = document.getElementById("w-pid").value.trim();
+  const msg = document.getElementById("wizard-msg");
+  if(!cid||!cs||!pid){ msg.style.display="block"; msg.style.background="rgba(255,80,80,0.15)"; msg.textContent="❌ أدخل كل الـ credentials"; return; }
+  msg.style.display="block"; msg.style.background="rgba(100,200,255,0.1)"; msg.textContent="⏳ جاري الحفظ والمزامنة...";
+  try{
+    const r1 = await fetch(apiBase+"/system/configure",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({INFISICAL_CLIENT_ID:cid,INFISICAL_CLIENT_SECRET:cs,INFISICAL_PROJECT_ID:pid})});
+    const d1 = await r1.json();
+    if(!d1.success){ msg.textContent="❌ فشل الحفظ"; return; }
+    msg.textContent="⏳ جاري الـ sync...";
+    const r2 = await fetch(apiBase+"/system/sync",{method:"POST"});
+    const d2 = await r2.json();
+    msg.style.background = d2.success ? "rgba(80,200,120,0.15)" : "rgba(255,80,80,0.15)";
+    if(d2.success){
+      msg.textContent = "✅ تم الحفظ والمزامنة بنجاح! 🎉";
+      document.getElementById("w-cid").value="";
+      document.getElementById("w-cs").value="";
+      document.getElementById("w-pid").value="";
+      setTimeout(()=>{ document.getElementById("infisical-wizard").style.display="none"; loadProviders().then(()=>loadModels()); }, 2000);
+    } else {
+      const out = (d2.output||"").slice(-200)||d2.error||"فشل";
+      msg.textContent = "⚠️ " + out;
+    }
+  }catch(e){ msg.textContent="❌ "+e.message; }
+}
 loadPrompts();
 
 // ── Agent Prompts ────────────────────────────────────────────────
