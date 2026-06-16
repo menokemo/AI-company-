@@ -105,7 +105,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
         print("[1/6] محلل النصوص...")
         output = llm_call(
             model=_model("doc_analyzer"),
-            system="أنت محلل مستندات خبير. تستخرج البنية الهرمية من أي مستند بدقة تامة وتحولها لـ JSON.",
+            system=_agent_prompt("doc_analyzer", "أنت محلل مستندات خبير. تستخرج البنية الهرمية من أي مستند بدقة تامة وتحولها لـ JSON."),
             user=f"{context}\nحلّل هذا المستند واستخرج بنيته الهرمية:\n\n{doc_content[:6000]}\n\nأخرج JSON يعكس الهيكل + كيف يترجم لمشروع برمجي.",
         )
         stages["doc_analyzer"] = output
@@ -116,7 +116,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
     print("[2/6] الباحث...")
     output = llm_call(
         model=_model("researcher"),
-        system="أنت باحث تقني خبير. توصي بأفضل tech stack وتحدد التحديات المتوقعة.",
+        system=_agent_prompt("researcher", "أنت باحث تقني خبير. توصي بأفضل tech stack وتحدد التحديات المتوقعة."),
         user=f"{context}\nاقترح أنسب tech stack لهذا المشروع مع تبرير كل اختيار والتحديات المتوقعة.",
         max_tokens=1500,
     )
@@ -128,7 +128,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
     print("[3/6] المصمم...")
     output = llm_call(
         model=_model("designer"),
-        system="أنت مصمم UI/UX خبير. تصمم هيكل المشروع والشاشات والمكونات.",
+        system=_agent_prompt("designer", "أنت مصمم UI/UX خبير. تصمم هيكل المشروع والشاشات والمكونات."),
         user=f"{context}\nصمّم الشاشات والمكونات وتدفق المستخدم لهذا المشروع.",
         max_tokens=1500,
     )
@@ -140,7 +140,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
     print("[4/6] المخطط...")
     output = llm_call(
         model=_model("planner"),
-        system="أنت مهندس برمجيات خبير. تكتب خططاً تقنية مفصّلة قابلة للتنفيذ مباشرة.",
+        system=_agent_prompt("planner", "أنت مهندس برمجيات خبير. تكتب خططاً تقنية مفصّلة قابلة للتنفيذ مباشرة."),
         user=f"{context}\nاكتب خطة تقنية كاملة تشمل: هيكل الملفات، قائمة الـ dependencies، skeleton code لكل ملف، أوامر التشغيل، README.md. الخطة يجب أن تكون كاملة للتنفيذ المباشر.",
         max_tokens=3000,
     )
@@ -152,7 +152,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
     print("[5/6] حلّال المشاكل...")
     output = llm_call(
         model=_model("problem_solver"),
-        system="أنت خبير debugging ومراجعة تقنية. تحدد المشاكل والتعارضات في الخطط وتصلحها.",
+        system=_agent_prompt("problem_solver", "أنت خبير debugging ومراجعة تقنية. تحدد المشاكل والتعارضات في الخطط وتصلحها."),
         user=f"{context}\nراجع الخطة التقنية وحدد أي مشاكل أو تعارضات أو نقاط ضعف، ثم أصدر خطة معدّلة ومحسّنة.",
         max_tokens=2000,
     )
@@ -165,7 +165,7 @@ def run_pipeline(project: dict, status_cb=None) -> dict:
     print("[6/6] المراجع...")
     output = llm_call(
         model=_model("reviewer"),
-        system="أنت مراجع كود خبير. تتحقق من جودة الخطط وتضع معايير القبول.",
+        system=_agent_prompt("reviewer", "أنت مراجع كود خبير. تتحقق من جودة الخطط وتضع معايير القبول."),
         user=f"{context}\nأعدّ تقرير جودة نهائي: هل الخطة تغطي المتطلبات؟ هل فيه مخاوف أمنية؟ ما معايير القبول؟ ما توصياتك للمبرمج؟",
         max_tokens=1500,
     )
