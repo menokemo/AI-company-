@@ -20,7 +20,7 @@ with open(ENV_FILE, encoding="utf-8") as f:
 # ── اكتشاف IP الـ VM ──────────────────────────────────────────────
 try:
     host_ip = subprocess.check_output(
-        ["hostname", "-I"], text=True
+        ["hostname", "-i"], text=True
     ).split()[0]
 except Exception:
     host_ip = "192.168.2.29"
