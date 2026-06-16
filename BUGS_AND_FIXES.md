@@ -19,6 +19,44 @@
 
 
 
+
+---
+
+## جلسة 2026-06-16 (مساء) — Sync Button + tools-api Fixes
+
+### BUG: `/system/sync` و `/system/configure` في `do_GET` بدل `do_POST`
+- **المشكلة:** الـ endpoints دي في الـ GET handler فبترجع 404 لما الـ dashboard يبعت POST
+- **الحل:** نقلهم لـ `do_POST` handler
+
+### BUG: `/system/configure` مش بيحفظ الـ .env على disk
+- **المشكلة:** كود بيعدّل `content` في الذاكرة بس ناقص `open(env_file,"w").write(content)`
+- **الحل:** إضافة الكتابة على disk
+
+### BUG: tools-api container مش فيه access للـ .env
+- **المشكلة:** الـ .env موجود على الـ host بس مش مـ mounted في container
+- **الحل:** إضافة volume mount في docker-compose: `infrastructure/.env:/opt/ai-company/infrastructure/.env`
+
+### BUG: tools-api (Alpine) مش فيه bash أو curl
+- **المشكلة:** `subprocess.run(["/bin/bash", ...])` يفشل لأن bash غير موجود في Alpine
+- **الحل:** إضافة `RUN apk add --no-cache bash curl` في الـ Dockerfile
+
+### BUG: `${BASH_SOURCE[0]}` مش شغّال في Alpine bash
+- **المشكلة:** Alpine's bash لا يدعم `${BASH_SOURCE[0]}`
+- **الحل:** استبدال بـ `$0`
+
+### BUG: `infisical-sync.sh` يستخدم `localhost:8080` داخل الـ container
+- **المشكلة:** من داخل tools-api container، Infisical مش على localhost
+- **الحل:** إضافة `INFISICAL_API_URL=http://ai-infisical:8080` في docker-compose للـ tools-api
+
+### BUG: Open WebUI tool id يحتوي على hyphens
+- **المشكلة:** `ai-company-tools` → 400 error (only alphanumeric + underscores)
+- **الحل:** `ai_company_tools`
+
+### BUG: secrets-sync/ غير مـ mounted في tools-api container
+- **المشكلة:** الـ sync script غير موجود داخل الـ container
+- **الحل:** إضافة volume: `secrets-sync:/opt/ai-company/secrets-sync:ro`
+
+---
 ---
 
 ## جلسة 2026-06-16 — Install Script Timing + Background Setup
