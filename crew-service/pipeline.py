@@ -13,6 +13,17 @@ def _read_api_keys() -> dict:
     return dict(os.environ)
 
 
+PROMPTS_FILE = os.path.join(os.path.dirname(__file__), "..", "config", "agent-prompts.json")
+
+def _agent_prompt(key: str, default: str = "") -> str:
+    """يقرأ الـ prompt من agent-prompts.json أو يرجع الـ default."""
+    try:
+        data = json.load(open(PROMPTS_FILE, encoding="utf-8"))
+        return data.get(key, {}).get("prompt") or default
+    except Exception:
+        return default
+
+
 def llm_call(model: str, system: str, user: str, max_tokens: int = 2000) -> str:
     """
     يستدعي المزوّد المناسب حسب format الموديل:
