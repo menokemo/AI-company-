@@ -1,176 +1,25 @@
-# ملخّص المشروع — PROJECT_SUMMARY
+# AI Company — Project Summary
 
-> الملف ده هو المرجع الشامل للمشروع. أي حد جديد يقراه يفهم: المشروع ده إيه، بيشتغل إزاي، اتعمل منه إيه، وإيه القادم. يتم تحديثه مع كل خطوة.
+## الوصف
+منظومة شركة برمجة بالذكاء الاصطناعي — تحوّل أفكار العملاء لتطبيقات حقيقية بشكل شبه أوتوماتيك.
 
----
+## البنية التحتية
 
-## ١. الفكرة
+| الخدمة | البورت | الوظيفة |
+|--------|--------|---------|
+| Dashboard | 80 | لوحة التحكم الرئيسية |
+| Open WebUI | 8888 | واجهة الدردشة + مدير المشروع |
+| OpenHands | 3000 | AI Coding Agent |
+| Infisical | 8080 | إدارة الـ secrets |
+| LiteLLM | 4000 | Proxy للـ LLM APIs |
+| Crew Pipeline | 9002 | Pipeline الـ 6 agents |
+| Tools API | 9000 | API داخلي |
+| Portainer | 9443 | إدارة Docker |
 
-منظومة برمجية تعتمد على عدة وكلاء ذكاء اصطناعي (`multi-agent`)، تتيح بناء تطبيقات ومواقع من مواصفات مكتوبة، عبر لوحة تحكم على الويب — دون الحاجة لخبرة برمجية عميقة من المستخدم.
+## التثبيت
 
-## ٢. المبادئ الأساسية
-
-- كل الأدوات مفتوحة المصدر و `self-hosted` ومجانية.
-- التكلفة الوحيدة: استدعاءات `API` لمزوّد النماذج.
-- تعمل على `Proxmox VM` واحدة.
-- كل الأسرار (مفاتيح، كلمات مرور) في مكان واحد فقط: `Infisical`.
-- الإدارة من المتصفح، بأقل استخدام ممكن للترمينال.
-
-## ٣. طريقة التسليم والتشغيل
-
-- المنظومة بالكامل تُسلَّم كـ **كود جاهز في هذا المستودع** + **سكربت تثبيت** (`install.sh`).
-- المستخدم ينزّل المستودع على الـ `VM` ويشغّل السكربت، فيقوم بكل شيء تلقائيًا (تثبيت `Docker`، رفع كل الخدمات، الإعداد المبدئي).
-- بعد التثبيت، كل شيء يُدار من المتصفح.
-- السكربت **idempotent**: آمن لإعادة التشغيل دون أن يفسد ما هو قائم.
-
-## ٤. المعمارية (كل المكوّنات جزء من المنظومة)
-
-| المكوّن | الأداة | الدور |
-|---|---|---|
-| البنية التحتية | `Ubuntu` + `Docker` + `Portainer` | تشغيل وإدارة الخدمات من المتصفح |
-| إدارة الأسرار | `Infisical` | كل المفاتيح وكلمات المرور في مكان واحد |
-| بوابة النماذج | `LiteLLM` | نقطة وصول موحّدة لمزوّدي النماذج |
-| المبرمج | `OpenHands` | **مكوّن داخلي** يكتب وينفّذ الكود |
-| تنسيق الوكلاء | `CrewAI` | باحث ← مصمم ← مخطّط ← مراجع |
-| تكامل GitHub | خدمة داخلية | إنشاء ريبو ورفع كل مشروع تلقائيًا |
-| لوحة التحكم | واجهة ويب موحّدة | إدخال المشاريع ومتابعتها |
-
-> توضيح مهم: `OpenHands` **ليس** أداة بناء المنظومة، بل هو أحد مكوّناتها (دور "المبرمج"). المنظومة كلها تُبنى وتُسلَّم كاملة جاهزة.
-
-## ٥. خط العمل — محادثة واحدة بمراحل
-
-### القرار المعماري
-بعد النقاش: **محادثة واحدة مع AI بدور "مدير مشروع"** بدلاً من ٥ وكلاء منفصلين (CrewAI).
-
-**السبب:** المستخدم يريد نقاشاً حقيقياً وتعديلات لحظية. CrewAI مناسب للمهام الأوتوماتيكية بدون تدخل بشري، لكن للـ vibe coding التفاعلي، محادثة واحدة ذكية أسرع وأبسط وأكثر مرونة.
-
-### الواجهة: Open WebUI
-- شات self-hosted يتوصّل بـ LiteLLM.
-- يدعم العربية، System Prompts مخصّصة، وTool Calls خارجية.
-- المستخدم يتعامل مع "مدير مشروع" واحد يمرّ بمراحل واضحة.
-
-### المراحل في المحادثة
-1. **فهم الفكرة** — AI يناقش، يسأل، يوضّح حتى تكتمل المواصفات.
-2. **المواصفات** — AI يعرض الشاشات والمزايا المقترحة، المستخدم يعتمد أو يعدّل.
-3. **الخطة التقنية** — AI يقترح stack وهيكل المشروع.
-4. **التنفيذ** — Tool Call تلقائي: إنشاء GitHub repo + تشغيل OpenHands لكتابة الكود.
-5. **التعديلات** — المستخدم يطلب تغييرات من نفس الشات، OpenHands ينفّذها.
-
-### Tool Calls (استدعاءات خارجية)
-- `create_github_repo(name, description)` — ينشئ ريبو جديد على GitHub.
-- `start_coding(repo_url, plan)` — يشغّل OpenHands بالخطة التقنية.
-- `get_coding_status()` — يتحقق من تقدم OpenHands.
-- `push_changes(message)` — يرفع التعديلات على الريبو.
-
-> المراجعة النهائية للأمان تبقى بشرية.
-
-## ٦. مخرجات المشاريع (مهم)
-
-- كل مشروع تنتجه المنظومة **يُحفظ على GitHub في ريبو خاص به**، وليس على السيرفر.
-- المنظومة تتولّى: إنشاء الريبو، رفع الكود، وأي تحديثات لاحقة.
-- السيرفر مخصّص لتشغيل المنظومة فقط (بيئة البناء)، لا لتخزين المشاريع.
-- يتطلب ذلك `GitHub Token` بصلاحية إنشاء مستودعات، يُحفظ في `Infisical`.
-
-## ٧. مبادئ الكفاءة والاستقرار
-
-- كل الخدمات في حاويات `Docker` مع `restart: unless-stopped`.
-- `healthchecks` لكل خدمة، وترتيب إقلاع يحترم الاعتماديات (`depends_on`).
-- تخزين دائم (`volumes`) لقواعد البيانات والإعدادات حتى لا تُفقد عند إعادة التشغيل.
-- حدود موارد لكل خدمة لمنع تعارض الموارد.
-- إعداد مركزي: لا أسرار داخل الكود، كلها من `Infisical`.
-- شبكة `Docker` داخلية معزولة بين الخدمات.
-- نسخ احتياطي دوري لبيانات `Infisical` (الأسرار) — يُخطّط لاحقًا.
-
-## ٧.١ عزل OpenHands (أمان حرج)
-
-`OpenHands` ينفّذ كودًا، لذا يجب عزله بصرامة حتى لا يُلحق ضررًا بالـ `VM` حتى لو أخطأ:
-
-- يعمل بمستخدم **غير جذري** (`non-root`) داخل حاويته.
-- **لا** يُمنح وصولًا إلى `Docker socket` الخاص بالمضيف ولا أي صلاحيات جذر على الـ `VM`.
-- يُقيَّد بمساحة عمل مخصّصة فقط — لا وصول لملفات النظام.
-- إسقاط الصلاحيات الزائدة (`cap_drop`)، وحدود موارد صارمة، وشبكة معزولة.
-- تنفيذ الكود يجري داخل `sandbox` منفصل لا يستطيع المساس بالمضيف.
-- **الهدف:** أسوأ ما قد يحدث هو إفساد مساحة عمل الوكيل وحدها، لا الخادم.
-
-## ٨. حالة المزايا
-
-| الميزة | الوصف | الحالة | ملاحظات |
-|---|---|---|---|
-| هيكل المستودع + التوثيق | README + ملفات التوثيق | ✅ تم | |
-| سكربت التثبيت | `install.sh` يشغّل كل شيء | ✅ تم (طبقة أولى) | يُوسَّع لاحقاً |
-| البنية التحتية | `Docker` + `Portainer` | ✅ تم | compose + installer |
-| إدارة الأسرار | `Infisical` | ✅ جاهز للتشغيل | يُعدّه المستخدم بعد التثبيت |
-| بوابة النماذج | `LiteLLM` | ✅ تم | مربوط بـ Infisical (multi-provider) |
-| المبرمج | `OpenHands` | ✅ جاهز | منفذ 3000، Docker socket مباشر |
-| خط العمل | `Open WebUI` + مدير مشروع AI | ✅ يعمل | GitHub repo + OpenHands تلقائياً |
-| تكامل GitHub للمشاريع | ريبو تلقائي لكل مشروع | ✅ يعمل | tools-api يعمل صح |
-| لوحة التحكم الموحّدة | dashboard + روابط + sync | ✅ تم | البورت 80 | |
-| نماذج محلية (`Ollama`) | تقليل التكلفة | ⏸️ مؤجّل | اختير `API` سحابي |
-
-> رموز الحالة: ✅ تم — 🔜 مخطّط — 💡 فكرة — ⏸️ مؤجّل
-
-## ٩. خارطة البناء
-
-1. هيكل المستودع + التوثيق ✅
-2. البنية التحتية (`Docker` + `Portainer`) + بداية `install.sh` ✅
-3. الأسرار + البوابة (`Infisical` + `LiteLLM`) ✅
-4. المبرمج (`OpenHands`) ✅
-5. Open WebUI (واجهة الشات) + Tool Calls (GitHub + OpenHands) ← نحن هنا
-6. لوحة التحكم الموحّدة
-7. مشروع تجريبي كامل من الفكرة لإنشاء ريبو خاص به
-
-## ١٠. القرارات المهمة
-
-- **النماذج:** عدة مزوّدين سحابيين — `Anthropic` و `OpenAI` و `OpenRouter` — عبر بوابة `LiteLLM` موحّدة. النماذج المحلية مؤجّلة.
-- **بناء المنظومة:** تُبنى بالكامل وتُسلَّم كسكربت تثبيت. `OpenHands` مكوّن داخلي وليس أداة بناء.
-- **تخزين المشاريع:** على GitHub (ريبو لكل مشروع)، وليس على السيرفر.
-
----
-
-## الحالة النهائية للمنظومة (يونيو 2026) ✅
-
-### Flow كامل يعمل:
-```
-المستخدم (Open WebUI :8888)
-    ↓ يشرح الفكرة
-مدير المشروع AI (Claude)
-    ↓ يناقش ويوافق
-create_project tool
-    ↓
-GitHub API → ينشئ repo جديد (menokemo/project-name)
-    ↓
-OpenHands V1 API → POST /api/v1/app-conversations
-    ↓
-agent-server (ghcr.io/openhands/agent-server:1.25.0-python)
-    ↓ يكلون الريبو
-    ↓ يكتب الكود
-    ↓ يعمل commit على branch جديد
-    ↓ يدفع على GitHub
-GitHub branch → Pull Request → مراجعة → merge لـ main
-```
-
-### إعدادات LLM في OpenHands:
-- **يجب إعدادها مرة واحدة بعد التثبيت** عبر Settings UI:
-  - Name: litellm
-  - Custom Model: openai/claude
-  - Base URL: http://VM_IP:4000
-  - API Key: LITELLM_MASTER_KEY
-
-### GitHub Integration:
-- يتم أوتوماتيك عبر `infisical-sync.sh` بعد كل sync
-- API: `POST /api/v1/secrets/git-providers`
-
-### الـ Workflow الاحترافي للكود:
-- OpenHands يكتب الكود على branch جديد (مش main مباشرة)
-- ده best practice — الكود يُراجع قبل الـ merge
-- المستقبل: إضافة auto Pull Request creation
----
-
-## ✅ الحالة الحالية — يونيو 2026
-
-### التثبيت
 ```bash
-TOKEN="ghp_xxx" && \
+TOKEN="ghp_xxx"
 curl -sf -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github.raw+json" \
   "https://raw.githubusercontent.com/menokemo/AI-company-/main/install.sh" \
@@ -178,19 +27,46 @@ curl -sf -H "Authorization: Bearer $TOKEN" \
 sudo bash /tmp/install.sh --github-token "$TOKEN"
 ```
 
-### ما يحدث تلقائياً
-- توليد كل الـ secrets (LITELLM_MASTER_KEY, WEBUI_SECRET_KEY, DB passwords)
-- تشغيل 12 خدمة
-- ربط GitHub بـ OpenHands
+## Flow المشروع
 
-### الخطوات اليدوية (مرة واحدة بعد التثبيت)
-1. Infisical (:8080): إضافة ANTHROPIC_API_KEY, GITHUB_TOKEN, GIT_USERNAME
-2. OpenHands (:3000): Settings → LLM → openai/claude | http://HOST_IP:4000
-3. لوحة التحكم (:80): اختيار موديل لكل موظف من Crew
+```
+Client → Open WebUI (مدير المشروع)
+    ↓
+Crew Pipeline (6 agents):
+  1. Document Analyzer
+  2. Researcher
+  3. Designer (mockups)
+  4. Planner
+  5. Problem Solver
+  6. Code Reviewer
+    ↓
+OpenHands → GitHub Repo → Pull Request
+```
 
-### صفر hardcoded
-- docker-compose: `env_file: .env` في كل service
-- litellm library: يقرأ API keys من env تلقائياً
-- models.json: فارغ — المستخدم يملأه من لوحة التحكم
-- HOST_IP: يُكتشف تلقائياً من `hostname -I`
+## الـ Credentials
+كلها في: لوحة التحكم → Access Credentials → Show
 
+## الـ Post-Install Steps
+1. Infisical → Sign Up → Machine Identity
+2. لوحة التحكم → Infisical Setup → Save & Sync
+3. Infisical → أضف: ANTHROPIC_API_KEY, GITHUB_TOKEN, GIT_USERNAME
+4. لوحة التحكم → Sync Now
+5. لوحة التحكم → موديلات المنظومة → اختار موديل لكل agent → Save
+
+## الملفات المهمة
+
+| الملف | الوظيفة |
+|-------|---------|
+| `install.sh` | التثبيت الكامل |
+| `infrastructure/docker-compose.yml` | تعريف الخدمات |
+| `infrastructure/.env` | كل الـ secrets (مولّدة) |
+| `config/models.json` | موديلات الـ agents |
+| `config/agent-prompts.json` | prompts الـ agents |
+| `tools-api/system-prompt.md` | prompt مدير المشروع |
+| `crew-service/pipeline.py` | Pipeline الـ 6 agents |
+| `secrets-sync/setup-*.py` | إعداد الخدمات |
+
+## الـ PENDING
+- [ ] اختبار Pipeline كامل من Open WebUI لـ OpenHands
+- [ ] إنشاء مدير المشروع أوتوماتيك بعد اختيار الموديل
+- [ ] PR creation من OpenHands
