@@ -3,7 +3,7 @@
 يولّد ملفات إعداد OpenHands تلقائياً من .env بعد كل sync.
 يُشغَّل بعد مزامنة Infisical مباشرةً.
 """
-import os, json, pathlib, subprocess
+import os, json, pathlib, socket
 
 STATE_DIR = os.environ.get("OPENHANDS_STATE_DIR", "/opt/ai-company/data/openhands")
 ENV_FILE  = os.environ.get("ENV_FILE", "/opt/ai-company/infrastructure/.env")
@@ -17,13 +17,15 @@ with open(ENV_FILE, encoding="utf-8") as f:
             k, _, v = line.partition("=")
             env[k.strip()] = v.strip()
 
-# ── اكتشاف IP الـ VM ──────────────────────────────────────────────
-try:
-    host_ip = subprocess.check_output(
-        ["hostname", "-i"], text=True
-    ).split()[0]
-except Exception:
-    host_ip = "192.168.2.29"
+# ── اكتشاف IP الـ VM من .env ─────────────────────────────────────
+host_ip = env.get("HOST_IP", "")
+if not host_ip:
+    # fallback: حاول تجيبه من الـ network
+    try:
+        import socket
+        host_ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        host_ip = "localhost"
 
 master_key  = env.get("LITELLM_MASTER_KEY", "")
 github_token = env.get("GITHUB_TOKEN", "")
