@@ -18,6 +18,50 @@
 
 
 
+
+---
+
+## جلسة 2026-06-16 — Install Script Timing + Background Setup
+
+### BUG: `docker compose wait` يبلوك للأبد
+- **المشكلة:** `docker compose wait infisical` ينتظر الـ container يـ EXIT مش يبقى healthy — يبلوك للأبد
+- **الحل:** استخدام `docker inspect` + `curl` للتحقق من الـ health
+
+### BUG: Infisical يحتاج أكثر من 10 دقائق على أول تثبيت
+- **المشكلة:** Infisical يحتاج 10-15 دقيقة لأول تشغيل (DB migrations + KMS init)
+- **الحل:** نقل كل الـ setup لـ background script بعد التثبيت
+
+### BUG: `curl` غير متاح داخل Infisical container
+- **المشكلة:** healthcheck يستخدم `curl -sf` لكنه غير موجود في الـ container
+- **الحل:** استخدام `wget` في healthcheck + curl من الـ host كـ fallback
+
+### BUG: `curl -sf` مع `set -euo pipefail` يوقف الـ script
+- **المشكلة:** `curl -sf` يرجع exit code 22 عند 4xx/5xx فيوقف الـ script بسبب pipefail
+- **الحل:** استخدام `if RESP=$(curl -sf ...)` بدل direct pipe
+
+### BUG: tool id يحتوي على `-` (hyphens)
+- **المشكلة:** Open WebUI يرفض tool id بـ hyphens: `ai-company-tools` → 400 error
+- **الحل:** استبدال بـ underscores: `ai_company_tools`
+
+### BUG: `base_model` hardcoded في setup-openwebui.py
+- **المشكلة:** `base_model = "openai/claude"` hardcoded
+- **الحل:** يقرأ من `config/models.json` → `project_manager.model`
+
+### FLOW النهائي للـ background setup
+```
+install.sh يخلص (~2 دقيقة)
+    ↓
+/tmp/ai-company-post-install.sh (background):
+    1. ينتظر Infisical healthy (docker inspect + curl fallback)
+    2. setup-infisical.py (ينشئ Machine Identity)
+    3. infisical-sync.sh (لو credentials موجودة)
+    4. setup-openwebui.py (admin + tools + project manager model)
+    5. restart portainer + setup-portainer.py (admin)
+    ↓
+/var/log/ai-company-setup.log للمتابعة
+```
+
+---
 ---
 
 ## جلسة 2026-06-15 (مساء) — Agent Prompts + Infisical Timing
