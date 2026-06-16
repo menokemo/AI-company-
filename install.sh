@@ -183,80 +183,63 @@ info "Starting all services..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 log "All services started"
 
-# ── 10. Auto-setup Infisical ─────────────────────────────────────────────
-info "Waiting for Infisical to be healthy (max 10 min)..."
-INFISICAL_READY=false
-for i in $(seq 1 120); do
+# ── 10-12. All setup in background (waits for Infisical) ─────────────────
+cat > /tmp/ai-company-post-install.sh << 'BGSCRIPT'
+#!/bin/bash
+LOG=/var/log/ai-company-setup.log
+
+echo "[setup] Waiting for Infisical to be healthy..."
+for i in $(seq 1 150); do
     sleep 5
-    HEALTH=$(docker inspect ai-infisical --format="{{.State.Health.Status}}" 2>/dev/null || echo "")
-    if [ "$HEALTH" = "healthy" ]; then
-        log "Infisical healthy via healthcheck! (${i}x5s)"
-        INFISICAL_READY=true
-        break
-    fi
-    # fallback: check API directly from host
-    if curl -s http://localhost:8080/api/status 2>/dev/null | grep -q '"message":"Ok"'; then
-        log "Infisical ready via API! (${i}x5s)"
-        INFISICAL_READY=true
-        break
-    fi
-    [ $((i % 6)) -eq 0 ] && info "Still waiting for Infisical... (${i}x5s) [$HEALTH]"
+    HEALTH=$(docker inspect ai-infisical --format='{{.State.Health.Status}}' 2>/dev/null || echo '')
+    [ "$HEALTH" = "healthy" ] && { echo "[setup] ✓ Infisical healthy (${i}x5s)"; break; }
+    curl -sf http://localhost:8080/api/status 2>/dev/null | grep -q '"message":"Ok"' && { echo "[setup] ✓ Infisical API ready (${i}x5s)"; break; }
+    [ $((i % 12)) -eq 0 ] && echo "[setup] Still waiting (${i}x5s) [$HEALTH]"
 done
-if [ "$INFISICAL_READY" = true ]; then
-    python3 "$ROOT_DIR/secrets-sync/setup-infisical.py"         && log "Infisical configured"         || warn "Infisical auto-setup failed — open http://$HOST_IP:8080 to configure manually"
-else
-    warn "Infisical not ready — open http://$HOST_IP:8080 to configure manually"
+
+BGSCRIPT
+
+# إضافة المتغيرات في الـ script
+cat >> /tmp/ai-company-post-install.sh << BGVARS
+ROOT_DIR="$ROOT_DIR"
+COMPOSE_FILE="$COMPOSE_FILE"
+ENV_FILE="$ENV_FILE"
+HOST_IP="$HOST_IP"
+INFISICAL_ID="$INFISICAL_ID"
+INFISICAL_SECRET="$INFISICAL_SECRET"
+INFISICAL_PROJ="$INFISICAL_PROJ"
+BGVARS
+
+cat >> /tmp/ai-company-post-install.sh << 'BGSCRIPT2'
+echo "[setup] Setting up Infisical..."
+python3 "$ROOT_DIR/secrets-sync/setup-infisical.py"     && echo "[setup] ✓ Infisical configured"     || echo "[setup] ! Infisical setup — use Dashboard to configure"
+
+if [ -n "$INFISICAL_ID" ]; then
+    python3 "$ROOT_DIR/secrets-sync/update-env.py"         "INFISICAL_CLIENT_ID=$INFISICAL_ID"         "INFISICAL_CLIENT_SECRET=$INFISICAL_SECRET"         "INFISICAL_PROJECT_ID=$INFISICAL_PROJ"         "ENV_FILE=$ENV_FILE"
 fi
 
-# Reload credentials that setup-infisical.py may have saved
-INFISICAL_CLIENT_ID=$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
-INFISICAL_CLIENT_SECRET=$(grep "^INFISICAL_CLIENT_SECRET=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
-INFISICAL_PROJECT_ID=$(grep "^INFISICAL_PROJECT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
-
-# Update .env with args-provided credentials if different
-if [ -n "$INFISICAL_ID" ] || [ -n "$INFISICAL_SECRET" ]; then
-    python3 "$ROOT_DIR/secrets-sync/update-env.py" \
-        "INFISICAL_CLIENT_ID=${INFISICAL_ID:-$INFISICAL_CLIENT_ID}" \
-        "INFISICAL_CLIENT_SECRET=${INFISICAL_SECRET:-$INFISICAL_CLIENT_SECRET}" \
-        "INFISICAL_PROJECT_ID=${INFISICAL_PROJ:-$INFISICAL_PROJECT_ID}" \
-        "ENV_FILE=$ENV_FILE"
+CID=$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2-)
+if [ -n "$CID" ]; then
+    echo "[setup] Syncing from Infisical..."
+    bash "$ROOT_DIR/secrets-sync/infisical-sync.sh"         && echo "[setup] ✓ Sync done" || echo "[setup] ! Sync failed"
 fi
 
-# ── 11. Auto-sync from Infisical (if keys exist) ─────────────────────────
-if [ -n "$(grep "^INFISICAL_CLIENT_ID=" "$ENV_FILE" | cut -d= -f2-)" ]; then
-    info "Syncing secrets from Infisical..."
-    bash "$ROOT_DIR/secrets-sync/infisical-sync.sh" \
-        && log "Infisical sync completed" \
-        || warn "Sync failed — add API keys in Infisical then use the Sync button in dashboard"
-fi
+echo "[setup] Setting up Open WebUI..."
+python3 "$ROOT_DIR/secrets-sync/setup-openwebui.py"     && echo "[setup] ✓ Open WebUI ready" || echo "[setup] ! Open WebUI failed"
 
-# ── 12. Post-install setup in background ──────────────────────────────────
-info "Scheduling post-install setup in background (5 min)..."
-nohup bash -c '
-    sleep 300
-    echo "[post-install] Setting up Open WebUI..."
-    python3 '"$ROOT_DIR"'/secrets-sync/setup-openwebui.py         && echo "[post-install] ✓ Open WebUI configured"         || echo "[post-install] ! Open WebUI setup failed"
-    echo "[post-install] Setting up Portainer..."
-    docker compose -f '"$COMPOSE_FILE"' --env-file '"$ENV_FILE"'         up -d --force-recreate portainer 2>/dev/null
-    sleep 15
-    python3 '"$ROOT_DIR"'/secrets-sync/setup-portainer.py         && echo "[post-install] ✓ Portainer configured"         || echo "[post-install] ! Portainer: open https://'"$HOST_IP"':9443"
-' >> /var/log/ai-company-setup.log 2>&1 &
-log "Post-install running in background — tail -f /var/log/ai-company-setup.log"
+echo "[setup] Setting up Portainer..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE"     up -d --force-recreate portainer 2>/dev/null
+sleep 15
+python3 "$ROOT_DIR/secrets-sync/setup-portainer.py"     && echo "[setup] ✓ Portainer ready" || echo "[setup] ! Portainer — configure via https://$HOST_IP:9443"
 
-# ── 14. Link GitHub to OpenHands ─────────────────────────────────────────
-info "Linking GitHub to OpenHands..."
-GH_LINKED=false
-for attempt in 1 2 3 4 5; do
-    sleep 15
-    if curl -sf -X POST "http://localhost:3000/api/v1/secrets/git-providers" \
-        -H "Content-Type: application/json" \
-        -d "{\"provider_tokens\":{\"github\":{\"token\":\"$GITHUB_TOKEN\",\"user_id\":\"$GIT_USERNAME\",\"host\":\"github.com\"}}}" \
-        >/dev/null 2>&1; then
-        log "GitHub connected to OpenHands (attempt $attempt)"
-        GH_LINKED=true; break
-    fi
-done
-[ "$GH_LINKED" = false ] && warn "GitHub link failed — will retry after Infisical sync"
+echo "[setup] ✅ All post-install setup complete!"
+BGSCRIPT2
+
+chmod +x /tmp/ai-company-post-install.sh
+nohup bash /tmp/ai-company-post-install.sh >> /var/log/ai-company-setup.log 2>&1 &
+log "Post-install running in background"
+log "Monitor: tail -f /var/log/ai-company-setup.log"
+
 
 # ── 15. Summary ───────────────────────────────────────────────────────────
 echo ""
