@@ -1,3 +1,29 @@
+## [1.3.0] — 2026-06-16 — Background Setup + Fast Install
+
+### التغيير الكبير: Install يخلص في دقيقتين
+- كل الـ setup (Infisical + OpenWebUI + Portainer) انتقل لـ background script
+- `/var/log/ai-company-setup.log` للمتابعة
+- الـ install لا ينتظر Infisical بعد الآن
+
+### إصلاحات
+- `docker compose wait` → `docker inspect` (healthcheck صح)
+- `curl -sf` في loop → `if RESP=$(curl ...)` (pipefail آمن)
+- `wget` في Infisical healthcheck (curl غير موجود في container)
+- tool id: `ai-company-tools` → `ai_company_tools`
+- base_model: hardcoded → يقرأ من `config/models.json`
+
+### Flow المستخدم بعد التثبيت
+```
+١. لوحة التحكم → Access Credentials → Show
+٢. Infisical → Sign Up → Machine Identity
+٣. لوحة التحكم → Infisical Setup → Save & Sync
+٤. Infisical → أضف API keys → Sync Now
+٥. لوحة التحكم → موديلات المنظومة → اختار موديل → Save
+٦. python3 setup-openwebui.py (لإنشاء مدير المشروع)
+```
+
+---
+
 ## [1.2.0] — 2026-06-15 — Agent Prompts Editor
 
 ### جديد
