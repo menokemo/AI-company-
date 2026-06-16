@@ -138,6 +138,7 @@ services:
       - OPENHANDS_URL=http://ai-openhands:3000
       - CREW_URL=http://ai-crew:9002
       - INFISICAL_API_URL=http://ai-infisical:8080
+      - ENV_FILE_PATH=/opt/ai-company/infrastructure/.env
       - CONFIG_FILE=/app/config/models.json
       - MOCKUPS_DIR=/app/config/mockups
       - PORT=9000
