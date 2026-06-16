@@ -116,6 +116,10 @@ INFISICAL_PROJECT_ID="${INFISICAL_PROJ:-$(get_env "INFISICAL_PROJECT_ID" "")}"
 # External API keys — preserved from previous sync
 GITHUB_TOKEN_STORED=$(get_env "GITHUB_TOKEN" "$GITHUB_TOKEN")
 GIT_USERNAME=$(get_env "GIT_USERNAME" "")
+# Auto-detect GIT_USERNAME from GITHUB_TOKEN if not set
+if [ -z "$GIT_USERNAME" ] && [ -n "$GITHUB_TOKEN_STORED" ]; then
+    GIT_USERNAME=$(curl -sf -H "Authorization: Bearer $GITHUB_TOKEN_STORED"         https://api.github.com/user 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin).get('login',''))" 2>/dev/null || echo "")
+fi
 ANTHROPIC_API_KEY=$(get_env "ANTHROPIC_API_KEY" "")
 OPENAI_API_KEY=$(get_env "OPENAI_API_KEY" "")
 OPENROUTER_API_KEY=$(get_env "OPENROUTER_API_KEY" "")
