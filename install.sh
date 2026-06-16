@@ -186,24 +186,16 @@ log "All services started"
 # ── 10. Auto-setup Infisical ─────────────────────────────────────────────
 info "Waiting for Infisical to be healthy (max 10 min)..."
 INFISICAL_READY=false
-if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" wait infisical 2>/dev/null; then
-    log "Infisical healthy (docker wait)"
-    INFISICAL_READY=true
-else
-    # fallback: manual check
-    for i in $(seq 1 60); do
-        sleep 5
-        if RESP=$(curl -sf http://localhost:8080/api/status 2>/dev/null); then
-            STATUS=$(echo "$RESP" | python3 -c "import json,sys;print(json.load(sys.stdin).get('message',''))" 2>/dev/null || echo "")
-            if [ "$STATUS" = "Ok" ]; then
-                log "Infisical ready (${i}x5s)"
-                INFISICAL_READY=true
-                break
-            fi
-        fi
-        [ $((i % 6)) -eq 0 ] && info "Still waiting for Infisical... (${i}x5s)"
-    done
-fi
+for i in $(seq 1 120); do
+    sleep 5
+    HEALTH=$(docker inspect ai-infisical --format="{{.State.Health.Status}}" 2>/dev/null || echo "")
+    if [ "$HEALTH" = "healthy" ]; then
+        log "Infisical healthy! (${i}x5s)"
+        INFISICAL_READY=true
+        break
+    fi
+    [ $((i % 6)) -eq 0 ] && info "Still waiting for Infisical... (${i}x5s) [$HEALTH]"
+done
 if [ "$INFISICAL_READY" = true ]; then
     python3 "$ROOT_DIR/secrets-sync/setup-infisical.py"         && log "Infisical configured"         || warn "Infisical auto-setup failed — open http://$HOST_IP:8080 to configure manually"
 else
