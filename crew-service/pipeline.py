@@ -2,7 +2,7 @@
 pipeline.py — Multi-agent pipeline بدون crewai.
 كل agent = LLM call منفصل بـ context من الـ agent السابق.
 """
-import os, json, requests
+import os, json, requests, time
 
 
 CONFIG_FILE = os.environ.get("CONFIG_FILE", "/app/config/models.json")
@@ -84,16 +84,31 @@ def llm_call(model: str, system: str, user: str, max_tokens: int = 2000) -> str:
         return resp.json()["choices"][0]["message"]["content"]
 
     # ── OpenRouter مباشرة ─────────────────────────────────────────────
+    # الموديلات المجانية على OpenRouter (":free") كثيراً ما تُرفض بـ 429
+    # rate-limit مؤقت — نعيد المحاولة مع انتظار قصير (احترام "Retry-After"
+    # الموجود في رد الخطأ نفسه لو وُجد) بدل الفشل الفوري.
     if provider == "openrouter":
         api_key = keys.get("OPENROUTER_API_KEY","")
-        resp = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": model_id, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3},
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        last_exc = None
+        for attempt in range(3):
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model_id, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3},
+                timeout=120,
+            )
+            if resp.status_code == 429:
+                wait_s = 8
+                try:
+                    wait_s = int(resp.json()["error"]["metadata"]["headers"]["Retry-After"])
+                except Exception:
+                    pass
+                last_exc = Exception(f"rate-limited (429) — انتظار {wait_s}ث ثم إعادة المحاولة")
+                time.sleep(min(wait_s, 15) + 1)
+                continue
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        raise last_exc or Exception("OpenRouter rate-limited بعد 3 محاولات")
 
     # ── LiteLLM proxy (aliases: claude, gpt, openrouter-auto) ──────────
     resp = requests.post(
