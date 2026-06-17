@@ -172,6 +172,11 @@ services:
       - SANDBOX_ENV_GITHUB_TOKEN=${GITHUB_TOKEN}
       - SANDBOX_ENV_GIT_USERNAME=${GIT_USERNAME}
       - SANDBOX_ENV_GIT_EMAIL=${GIT_USERNAME}@users.noreply.github.com
+      # متغيرات LLM_* — OpenHands V1 يحوّلها أوتوماتيك لـ sandbox container
+      # (config.toml وحده غير كافٍ لـ V1 API، السبب في AuthenticationError)
+      - LLM_MODEL=openai/claude
+      - LLM_API_KEY=${LITELLM_MASTER_KEY}
+      - LLM_BASE_URL=http://${HOST_IP}:4000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/ai-company/data/openhands:/.openhands
