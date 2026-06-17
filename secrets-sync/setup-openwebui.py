@@ -76,34 +76,32 @@ def main():
     token = data["token"]
     print(f"  Signed in as {admin_email}")
 
-    # Check if tool already exists
+    # Check if tool already exists — لو موجود، نتخطى رفعه بس نكمّل لباقي الإعدادات
     tools_data, _ = req("GET", "/api/v1/tools/", token=token)
     existing = [t for t in (tools_data if isinstance(tools_data, list) else [])
                 if t.get("name") == "AI Company Tools"]
+
     if existing:
-        print("  [✓] Tool already exists — skipping")
-        return 0
-
-    # Read tool file
-    try:
-        tool_content = open(TOOL_FILE, encoding="utf-8").read()
-    except:
-        print(f"  [!] Tool file not found: {TOOL_FILE}")
-        return 1
-
-    # Upload tool
-    print("  Uploading AI Company Tools...")
-    data, status = req("POST", "/api/v1/tools/create", {
-        "id":          "ai_company_tools",
-        "name":        "AI Company Tools",
-        "content":     tool_content,
-        "meta":        {"description": "Generate mockups and create projects"},
-    }, token=token)
-
-    if status in (200, 201):
-        print("  [✓] Tool uploaded successfully!")
+        print("  [✓] Tool already exists — skipping upload")
     else:
-        print(f"  [!] Tool upload failed ({status}): {data}")
+        try:
+            tool_content = open(TOOL_FILE, encoding="utf-8").read()
+        except:
+            print(f"  [!] Tool file not found: {TOOL_FILE}")
+            tool_content = None
+
+        if tool_content:
+            print("  Uploading AI Company Tools...")
+            data, status = req("POST", "/api/v1/tools/create", {
+                "id":          "ai_company_tools",
+                "name":        "AI Company Tools",
+                "content":     tool_content,
+                "meta":        {"description": "Generate mockups and create projects"},
+            }, token=token)
+            if status in (200, 201):
+                print("  [✓] Tool uploaded successfully!")
+            else:
+                print(f"  [!] Tool upload failed ({status}): {data}")
 
     # ── Create Project Manager model ─────────────────────────────
     print("  Creating Project Manager model...")
@@ -125,8 +123,8 @@ def main():
         print("  [!] No model configured for project_manager — set it in Dashboard → Models first")
         return 0
 
-    model_data, model_status = req("POST", "/api/v1/models/create", {
-        "id": "ai-company-project-manager",
+    model_payload = {
+        "id": "ai_company_project_manager",
         "name": "🤖 مدير المشروع — AI Company",
         "base_model_id": base_model,
         "meta": {
@@ -137,12 +135,28 @@ def main():
             "system": sys_prompt,
             "temperature": 0.7
         }
-    }, token=token)
+    }
 
-    if model_status in (200, 201):
-        print("  [✓] Project Manager model created!")
+    # تحقق لو الموديل موجود بالفعل — لو موجود حدّثه، لو غير موجود أنشئه
+    existing_models, _ = req("GET", "/api/v1/models/", token=token)
+    model_exists = any(
+        m.get("id") == "ai_company_project_manager"
+        for m in (existing_models if isinstance(existing_models, list) else [])
+    )
+
+    if model_exists:
+        model_data, model_status = req("POST", "/api/v1/models/model/update?id=ai_company_project_manager",
+                                        model_payload, token=token)
+        if model_status in (200, 201):
+            print("  [✓] Project Manager model updated!")
+        else:
+            print(f"  [!] Model update failed ({model_status}): {str(model_data)[:100]}")
     else:
-        print(f"  [!] Model creation failed ({model_status}): {str(model_data)[:100]}")
+        model_data, model_status = req("POST", "/api/v1/models/create", model_payload, token=token)
+        if model_status in (200, 201):
+            print("  [✓] Project Manager model created!")
+        else:
+            print(f"  [!] Model creation failed ({model_status}): {str(model_data)[:100]}")
 
     # Save credentials to .env
     for k, v in [("WEBUI_ADMIN_EMAIL", admin_email),
