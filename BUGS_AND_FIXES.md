@@ -23,6 +23,32 @@
 
 
 
+
+---
+
+## جلسة 2026-06-17 (تابع) — Sync لا يُطبّق الـ secrets فعلياً
+
+### BUG: `docker restart` لا يُعيد قراءة `env_file`
+- **المشكلة:** `infisical-sync.sh` كان يستخدم `docker restart ai-litellm` بعد تحديث `.env` — لكن `docker restart` يعيد تشغيل الـ container بنفس الـ environment القديم وقت الإنشاء، ولا يُعيد قراءة `env_file` من docker-compose
+- **الأثر:** الـ API keys الجديدة من Infisical تُكتب في `.env` بنجاح، لكن LiteLLM يستمر بدونها → `litellm.BadRequestError: You didn't provide an API key`
+- **الحل:** استخدام `docker compose up -d --force-recreate <service>` بدل `docker restart`
+
+### BUG: `docker-compose.yml` نفسه غير mounted في tools-api container
+- **المشكلة:** الـ `--force-recreate` يحتاج `docker compose` يقرأ ملف الـ compose، لكنه غير موجود جوه الـ container
+- **الحل:** mount صريح: `docker-compose.yml:/opt/ai-company/infrastructure/docker-compose.yml:ro`
+
+### BUG: `base_model_id` لمدير المشروع غير معروف لـ Open WebUI
+- **المشكلة:** `models.json` يخزّن `"manager": "openai/gpt-4o"` (provider/model خام) — لكن Open WebUI يعرف فقط الـ aliases المعرّفة في `litellm-config.yaml` (`claude`, `gpt`, `openrouter-auto`)، فيظهر **"Model not found"**
+- **الحل:** mapping صريح في `setup-openwebui.py`: `{"anthropic":"claude", "openai":"gpt", "openrouter":"openrouter-auto"}`
+
+### النتيجة
+```
+[+] إعادة تشغيل الخدمات بالمفاتيح الجديدة...
+[+] ✅ تم الـ sync بنجاح!
+```
+الـ API keys دلوقتي تُحقن فعلياً في LiteLLM container بعد كل sync، ومدير المشروع يتعرّف على الموديل الصحيح.
+
+---
 ---
 
 ## جلسة 2026-06-17 — Project Manager Creation: السبب الجذري الكامل
