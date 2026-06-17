@@ -111,12 +111,20 @@ def main():
     except:
         sys_prompt = "You are an AI Project Manager. Help clients build software applications."
 
-    # جيب الموديل من config/models.json
+    # جيب الموديل من config/models.json — وحوّله لـ LiteLLM alias الصحيح
+    # (Open WebUI لا يعرف "provider/model" خام، فقط الـ aliases المعرّفة في litellm-config.yaml)
+    PROVIDER_TO_ALIAS = {
+        "anthropic": "claude",
+        "openai":    "gpt",
+        "openrouter":"openrouter-auto",
+    }
     try:
         import json as _json
         models_path = os.environ.get("CONFIG_FILE", "/app/config/models.json")
         models_cfg = _json.loads(open(models_path).read())
-        base_model = models_cfg.get("manager", "")
+        raw_model = models_cfg.get("manager", "")
+        provider = raw_model.split("/", 1)[0] if "/" in raw_model else raw_model
+        base_model = PROVIDER_TO_ALIAS.get(provider, raw_model)
     except Exception as e:
         print(f"  [!] Could not read models config: {e}")
         base_model = ""
