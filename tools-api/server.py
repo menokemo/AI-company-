@@ -346,6 +346,16 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/config/models":
             self.json(read_config())
             return
+        if self.path == "/run-history":
+            # سجل أعمال الموظفين (الـ 6 agents + OpenHands) — يُكتب من
+            # crew-service على نفس volume الإعدادات المشترك /app/config
+            history_file = os.path.join(os.path.dirname(CONFIG_FILE), "run_history.json")
+            try:
+                history = json.loads(open(history_file, encoding="utf-8").read())
+            except Exception:
+                history = []
+            self.json({"history": history})
+            return
         if self.path.startswith("/system/health"):
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(self.path).query)
