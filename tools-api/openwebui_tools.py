@@ -82,12 +82,20 @@ class Tools:
         :return: Status message with GitHub repo link
         """
         try:
+            # نبني وصف مهمة كامل ومفصّل لـ OpenHands بدل إرسال حقول منفصلة
+            # غير مفهومة من الـ endpoint (كان السبب في "task" فاضية تماماً)
+            task = (
+                f"Build a project called '{name}': {description}\n\n"
+                f"Tech stack: {tech_stack}\n\n"
+                f"Screens/features to implement:\n{screens}\n"
+            )
+            if chosen_mockup_url:
+                task += f"\nDesign reference (chosen mockup): {chosen_mockup_url}\n"
+
             data = json.dumps({
                 "name": name,
                 "description": description,
-                "tech_stack": tech_stack,
-                "screens": screens,
-                "mockup_url": chosen_mockup_url or "",
+                "task": task,
             }).encode()
             req = urllib.request.Request(
                 f"{TOOLS_API}/create-and-start",
@@ -100,10 +108,18 @@ class Tools:
             if not result.get("success"):
                 return f"❌ Failed: {result.get('error')}"
 
-            repo = result.get("repo", {})
+            repo_url = result.get("repo_url", "")
+            coding = result.get("coding", {})
+            if not coding.get("success", True):
+                return (
+                    f"⚠️ **Repo created but OpenHands failed to start:**\n"
+                    f"📁 **GitHub Repo:** {repo_url}\n"
+                    f"❌ {coding.get('error', 'Unknown error')}"
+                )
+
             return (
                 f"✅ **Project created and coding started!**\n\n"
-                f"📁 **GitHub Repo:** {repo.get('html_url','')}\n"
+                f"📁 **GitHub Repo:** {repo_url}\n"
                 f"🤖 **OpenHands** is now writing the code...\n"
                 f"⏱️ This usually takes 10–20 minutes.\n\n"
                 f"You'll get a Pull Request on GitHub when it's ready for review!"
