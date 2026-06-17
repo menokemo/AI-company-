@@ -7,7 +7,7 @@ Auto-setup Open WebUI:
 """
 import json, os, sys, time, urllib.request, urllib.error
 
-BASE     = "http://localhost:8888"
+BASE     = os.environ.get("OPENWEBUI_URL", "http://localhost:8888")
 ENV_FILE  = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
 BASE_DIR  = os.path.dirname(os.path.dirname(ENV_FILE))
 TOOL_FILE = os.path.join(BASE_DIR, "tools-api", "openwebui_tools.py")
