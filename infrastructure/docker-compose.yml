@@ -177,6 +177,11 @@ services:
       - LLM_MODEL=openai/claude
       - LLM_API_KEY=${LITELLM_MASTER_KEY}
       - LLM_BASE_URL=http://${HOST_IP}:4000
+      # بعض الـ sandbox tooling (مثل "Skill"/microagent) يدوّر على اسم OPENAI_API_KEY
+      # القياسي بالظبط، بمعزل عن LLM_*، فلازم تتفرّع بنفس الـ SANDBOX_ENV_ pattern
+      - SANDBOX_ENV_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      - SANDBOX_ENV_OPENAI_API_BASE=http://${HOST_IP}:4000
+      - SANDBOX_ENV_OPENAI_BASE_URL=http://${HOST_IP}:4000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/ai-company/data/openhands:/.openhands
