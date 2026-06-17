@@ -55,11 +55,15 @@ python3 "$SCRIPT_DIR/generate-openhands-config.py"
 # ── إعادة تشغيل الخدمات ──────────────────────────────────────────────────────
 # ملاحظة: لا نعيد تشغيل tools-api هنا لأن هذا الـ script غالباً يُستدعى
 # من داخل tools-api نفسه عبر /system/sync — إعادة تشغيله سيقطع الـ HTTP response
-log "إعادة تشغيل الخدمات..."
-docker restart ai-litellm ai-crew 2>/dev/null || true
+# ملاحظة: docker restart لا يُعيد قراءة env_file — لازم --force-recreate
+# عشان الـ secrets الجديدة تتحقن فعلياً في الـ container environment
+log "إعادة تشغيل الخدمات بالمفاتيح الجديدة..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
+    up -d --force-recreate litellm crew-service 2>/dev/null || true
 if [ ! -f "/.dockerenv" ]; then
     # فقط لو الـ script شغّال على الـ host مباشرةً (مش من داخل container)
-    docker restart ai-tools-api 2>/dev/null || true
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
+        up -d --force-recreate tools-api 2>/dev/null || true
 fi
 
 # ── ربط GitHub بـ OpenHands ──────────────────────────────────────────────────
