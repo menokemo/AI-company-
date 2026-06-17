@@ -542,6 +542,14 @@ async function saveModels(){
     msg.style.color=res.success?"var(--green)":"var(--red)";
     msg.textContent=res.success?"✅ تم الحفظ! التغييرات سارية فوراً":"❌ فشل: "+res.error;
     setTimeout(()=>msg.style.display="none",4000);
+    if(res.success && !document.getElementById("create-pm-btn")){
+      const btn = document.createElement("button");
+      btn.id = "create-pm-btn";
+      btn.textContent = "🤖 إنشاء مدير المشروع في Open WebUI";
+      btn.style = "margin-top:10px;width:100%;background:rgba(99,102,241,0.15);border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:8px;cursor:pointer;font-size:13px";
+      btn.onclick = createProjectManager;
+      document.getElementById("models-section").appendChild(btn);
+    }
   }catch(e){ alert("خطأ في الحفظ: "+e.message); }
 }
 
