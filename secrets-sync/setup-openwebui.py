@@ -77,7 +77,7 @@ def main():
     print(f"  Signed in as {admin_email}")
 
     # Check if tool already exists — لو موجود، نتخطى رفعه بس نكمّل لباقي الإعدادات
-    tools_data, _ = req("GET", "/api/v1/tools/", token=token)
+    tools_data, _ = req("GET", "/api/v1/tools/", token=token)  # tools endpoint requires trailing slash
     existing = [t for t in (tools_data if isinstance(tools_data, list) else [])
                 if t.get("name") == "AI Company Tools"]
 
@@ -140,11 +140,9 @@ def main():
     }
 
     # تحقق لو الموديل موجود بالفعل — لو موجود حدّثه، لو غير موجود أنشئه
-    existing_models, _ = req("GET", "/api/v1/models/", token=token)
-    model_exists = any(
-        m.get("id") == "ai_company_project_manager"
-        for m in (existing_models if isinstance(existing_models, list) else [])
-    )
+    existing_models, _ = req("GET", "/api/v1/models", token=token)  # NO trailing slash — returns SPA HTML otherwise
+    models_list = existing_models.get("data", []) if isinstance(existing_models, dict) else (existing_models if isinstance(existing_models, list) else [])
+    model_exists = any(m.get("id") == "ai_company_project_manager" for m in models_list)
 
     if model_exists:
         model_data, model_status = req("POST", "/api/v1/models/model/update?id=ai_company_project_manager",
