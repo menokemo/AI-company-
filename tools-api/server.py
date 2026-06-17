@@ -246,6 +246,21 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/config/models":
             self.json(read_config())
             return
+        if self.path.startswith("/system/health"):
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            port = qs.get("port", [""])[0]
+            proto = qs.get("proto", ["http"])[0]
+            ok = False
+            try:
+                import socket
+                s_ = socket.create_connection(("localhost", int(port)), timeout=2)
+                s_.close()
+                ok = True
+            except Exception:
+                ok = False
+            self.json({"port": port, "up": ok})
+            return
         if self.path == "/system/credentials":
             env = dict(os.environ)
             # قراءة من .env أيضاً
