@@ -103,7 +103,7 @@ const AGENTS = [
   {key:"problem_solver",icon:"🔧",name:"حلّال مشاكل"},
   {key:"reviewer",     icon:"👁️", name:"مراجع"},
 ];
-const MODELS = ["claude","gpt","openrouter-auto","claude-opus","gpt-4o"];
+const MODELS = ["claude","gpt","openrouter-auto"]; // يطابق aliases الفعلية في litellm-config.yaml
 let health = {}, history = [], running = null;
 
 function updateClock(){
