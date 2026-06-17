@@ -5,6 +5,18 @@ import os, json, time, traceback, urllib.request, urllib.error
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pipeline import run_pipeline
 
+PROVIDER_TO_ALIAS = {"anthropic": "claude", "openai": "gpt", "openrouter": "openrouter-auto"}
+
+def get_coder_model():
+    """يقرأ الموديل المختار لـ OpenHands من config/models.json (مفتاح 'coder')."""
+    try:
+        cfg = json.loads(open(os.environ.get("CONFIG_FILE", "/app/config/models.json")).read())
+        raw = cfg.get("coder", "")
+        provider = raw.split("/", 1)[0] if "/" in raw else raw
+        return f"openai/{PROVIDER_TO_ALIAS.get(provider, 'claude')}"
+    except Exception:
+        return "openai/claude"
+
 PORT          = int(os.environ.get("PORT", "9002"))
 RUN_HISTORY   = []   # سجل pipeline runs
 CURRENT_RUN   = {"running": False, "project": "", "current": "", "done": []}
@@ -47,7 +59,7 @@ def start_openhands(repo: str, plan: str) -> dict:
         "initial_message": {"content": [{"type": "text", "text": msg}]},
         "selected_repository": repo,
         "git_provider": "github",
-        "llm_model": "openai/claude",
+        "llm_model": get_coder_model(),
     }).encode()
     req = urllib.request.Request(
         f"{OPENHANDS_URL}/api/v1/app-conversations",
