@@ -139,6 +139,8 @@ services:
       - CREW_URL=http://ai-crew:9002
       - INFISICAL_API_URL=http://ai-infisical:8080
       - ENV_FILE_PATH=/opt/ai-company/infrastructure/.env
+      - OPENWEBUI_URL=http://ai-open-webui:8888
+      - PORTAINER_URL=https://ai-portainer:9443
       - CONFIG_FILE=/app/config/models.json
       - MOCKUPS_DIR=/app/config/mockups
       - PORT=9000
