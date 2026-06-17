@@ -144,7 +144,6 @@ class H(BaseHTTPRequestHandler):
                 self.json_resp({"error":"ui.html not found"}, 404)
             return
         if self.path == "/status-json":
-            import os
             agents_models = {
                 a: os.environ.get(f"AGENT_{a.upper()}_MODEL", "claude")
                 for a in ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"]
@@ -175,12 +174,8 @@ th{{background:#161b22;}}code{{color:#79c0ff;background:#0d1117;padding:2px 6px;
         if self.path == "/health":
             import json as _j
             try:
-                _cfgpath = os.environ.get("CONFIG_FILE","/app/config/models.json")
-                cfg = _j.load(open(_cfgpath))
-                print(f"[health-debug] loaded {_cfgpath} OK: {cfg}")
-            except Exception as _e:
-                print(f"[health-debug] FAILED to load config: {type(_e).__name__}: {_e}")
-                cfg = {}
+                cfg = _j.load(open(os.environ.get("CONFIG_FILE","/app/config/models.json")))
+            except: cfg = {}
             self.json_resp({
                 "status": "ok",
                 "agents": ["doc_analyzer","researcher","designer","planner","problem_solver","reviewer"],
