@@ -115,12 +115,12 @@ def main():
     try:
         import json as _json
         models_cfg = _json.loads(open("/opt/ai-company/config/models.json").read())
-        base_model = models_cfg.get("project_manager", {}).get("model", "")
+        base_model = models_cfg.get("manager", "")
     except:
         base_model = ""
 
     if not base_model:
-        print("  [!] No model configured for project_manager — set it in Dashboard → Models first")
+        print("  [!] No model configured for manager — set it in Dashboard → Models first")
         return 0
 
     model_payload = {
