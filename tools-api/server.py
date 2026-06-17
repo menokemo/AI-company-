@@ -149,6 +149,25 @@ def create_repo(name, description=""):
         return {"error": f"GitHub error {e.code}: {err.get('message','')}"}
 
 
+PROVIDER_TO_ALIAS = {
+    "anthropic":  "claude",
+    "openai":     "gpt",
+    "openrouter": "openrouter-auto",
+}
+
+def get_coder_model():
+    """يقرأ الموديل المختار لـ OpenHands من config/models.json (مفتاح 'coder')
+    ويحوّله لـ LiteLLM alias الصحيح — بدل قيمة ثابتة (hardcoded)."""
+    try:
+        models_cfg = json.loads(open(CONFIG_FILE, encoding="utf-8").read())
+        raw_model = models_cfg.get("coder", "")
+        provider = raw_model.split("/", 1)[0] if "/" in raw_model else raw_model
+        alias = PROVIDER_TO_ALIAS.get(provider, "claude")
+        return f"openai/{alias}"
+    except Exception:
+        return "openai/claude"
+
+
 def start_coding(full_name, task, description="", document_content=""):
     """إرسال مهمة لـ OpenHands V1 API"""
     msg = (
@@ -170,7 +189,7 @@ def start_coding(full_name, task, description="", document_content=""):
         "selected_repository": full_name,
         "git_provider": "github",
         "selected_branch": "main",
-        "llm_model": "openai/claude",
+        "llm_model": get_coder_model(),
     }
     try:
         body = json.dumps(payload).encode()
