@@ -21,10 +21,22 @@ PORT          = int(os.environ.get("PORT", "9002"))
 RUN_HISTORY   = []   # سجل pipeline runs
 CURRENT_RUN   = {"running": False, "project": "", "current": "", "done": []}
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
-GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
+def get_github_token() -> str:
+    """يقرأ GITHUB_TOKEN من ملف .env مباشرة في كل استدعاء — لا constant ثابت
+    وقت بدء التشغيل، لأن sync بيحدّث الملف بدون إعادة تشغيل الخدمة."""
+    env_file = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+    try:
+        for line in open(env_file, encoding="utf-8"):
+            line = line.strip()
+            if line.startswith("GITHUB_TOKEN="):
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return os.environ.get("GITHUB_TOKEN", "")
 
 
 def create_pr(repo: str, branch: str, title: str, body: str) -> dict:
+    GITHUB_TOKEN = get_github_token()
     if not GITHUB_TOKEN:
         return {"error": "no GITHUB_TOKEN"}
     payload = json.dumps({
