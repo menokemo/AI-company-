@@ -8,7 +8,7 @@ Auto-setup Infisical:
 """
 import json, os, sys, time, urllib.request, urllib.error
 
-BASE     = "http://localhost:8080"
+BASE     = os.environ.get("INFISICAL_API_URL", "http://localhost:8080")
 ENV_FILE = "/opt/ai-company/infrastructure/.env"
 
 def get_env(key):
