@@ -1,7 +1,20 @@
 import os, json, urllib.request, urllib.error, re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
+def get_github_token() -> str:
+    """يقرأ GITHUB_TOKEN من ملف .env مباشرة في كل استدعاء — لا نخزّنه كـ
+    constant وقت بدء تشغيل الـ module، لأن 'Sync from Infisical' يكتب القيمة
+    الجديدة في الملف فقط (بدون إعادة تشغيل tools-api نفسه)، فلو خزّناه هنا
+    starup-time فقط، أي تحديث للتوكن بعد أول تشغيل لن يُستخدم أبداً."""
+    env_file = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+    try:
+        for line in open(env_file, encoding="utf-8"):
+            line = line.strip()
+            if line.startswith("GITHUB_TOKEN="):
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return os.environ.get("GITHUB_TOKEN", "")
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 CREW_URL      = os.environ.get("CREW_URL",      "http://ai-crew:9002")
 MOCKUPS_DIR   = os.environ.get("MOCKUPS_DIR", "/app/config/mockups")
@@ -46,7 +59,23 @@ def get_available_providers(force_refresh: bool = False) -> dict:
     if not force_refresh and _providers_cache["data"] and (time.time() - _providers_cache["ts"]) < 3600:
         return _providers_cache["data"]
 
+    # نقرأ المفاتيح من ملف .env على القرص مباشرة، لا من os.environ المخزّنة
+    # في ذاكرة الـ process وقت بدء التشغيل — لأن "Sync from Infisical" يكتب
+    # القيم الجديدة في الملف فقط، ولا يعيد تشغيل tools-api نفسه (لتجنّب قتل
+    # نفسه أثناء الرد على الطلب). فلو اعتمدنا على os.environ هنا، التحديثات
+    # الجديدة (مفاتيح API المُضافة بعد أول تشغيل) لن تظهر أبداً حتى يُعاد
+    # تشغيل الـ container بالكامل يدويًا.
     env = dict(os.environ)
+    try:
+        for line in open(ENV_FILE, encoding="utf-8"):
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            env[k.strip()] = v.strip()
+    except Exception:
+        pass  # لو الملف غير موجود لأي سبب، نكتفي بـ os.environ كـ fallback
+
     result = {}
 
     for provider_id, info in _KNOWN_PROVIDERS.items():
@@ -112,6 +141,7 @@ def write_config(data: dict) -> bool:
 
 
 def get_username():
+    GITHUB_TOKEN = get_github_token()
     if not GITHUB_TOKEN: return ""
     try:
         req = urllib.request.Request("https://api.github.com/user")
@@ -123,6 +153,7 @@ def get_username():
 
 
 def create_repo(name, description=""):
+    GITHUB_TOKEN = get_github_token()
     if not GITHUB_TOKEN: return {"error": "GITHUB_TOKEN غير مضبوط"}
     safe = re.sub(r"[^a-zA-Z0-9\-]", "-", name.lower()).strip("-")
     body = json.dumps({"name":safe,"description":description,"auto_init":True}).encode()
@@ -312,7 +343,7 @@ class H(BaseHTTPRequestHandler):
             })
             return
         if self.path == "/health":
-            self.json({"status":"ok","github":bool(GITHUB_TOKEN),"user":get_username(),"openhands_api":"v1"})
+            self.json({"status":"ok","github":bool(get_github_token()),"user":get_username(),"openhands_api":"v1"})
         else:
             self.json({"error":"not found"}, 404)
     def do_POST(self):
@@ -446,5 +477,5 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     user = get_username()
-    print(f"[+] Tools API :{PORT} — GitHub: {'✓ '+user if GITHUB_TOKEN else '✗'} — OpenHands V1 API")
+    print(f"[+] Tools API :{PORT} — GitHub: {'✓ '+user if get_github_token() else '✗'} — OpenHands V1 API")
     HTTPServer(("0.0.0.0", PORT), H).serve_forever()
