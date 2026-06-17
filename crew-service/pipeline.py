@@ -5,8 +5,16 @@ pipeline.py — Multi-agent pipeline بدون crewai.
 import os, json, requests
 
 
-def _model(env_key: str, default: str = "claude") -> str:
-    return os.environ.get(env_key, default)
+CONFIG_FILE = os.environ.get("CONFIG_FILE", "/app/config/models.json")
+
+def _model(agent_key: str, default: str = "claude") -> str:
+    """يقرأ الموديل المختار لهذا الـ agent من config/models.json
+    (المفتاح نفسه اللي بيحفظه المستخدم من لوحة التحكم)."""
+    try:
+        cfg = json.load(open(CONFIG_FILE, encoding="utf-8"))
+        return cfg.get(agent_key) or default
+    except Exception:
+        return default
 
 def _read_api_keys() -> dict:
     """يقرأ API keys من env — مُحقَنة من docker-compose/Infisical."""
