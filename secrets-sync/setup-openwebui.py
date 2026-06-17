@@ -136,7 +136,9 @@ def main():
         "params": {
             "system": sys_prompt,
             "temperature": 0.7
-        }
+        },
+        "access_grants": [],
+        "is_active": True
     }
 
     # تحقق لو الموديل موجود بالفعل — لو موجود حدّثه، لو غير موجود أنشئه
