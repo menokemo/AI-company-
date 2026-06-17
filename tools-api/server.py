@@ -367,7 +367,7 @@ class H(BaseHTTPRequestHandler):
                 r2 = subprocess.run(
                     ["/bin/bash", "-c",
                      f"python3 {os.path.dirname(ENV_FILE).replace('infrastructure','secrets-sync')}/setup-openwebui.py"],
-                    capture_output=True, text=True, timeout=60, env=env
+                    capture_output=True, text=True, timeout=120, env=env
                 )
                 out = (r2.stdout + r2.stderr).strip()
                 self.json({"success": "Project Manager" in out or r2.returncode == 0, "output": out[-500:]})
