@@ -2,7 +2,7 @@
 """Auto-setup Portainer admin account."""
 import json, os, sys, time, urllib.request, urllib.error
 
-BASE     = "https://localhost:9443"
+BASE     = os.environ.get("PORTAINER_URL", "https://localhost:9443")
 ENV_FILE = "/opt/ai-company/infrastructure/.env"
 
 def get_env(key):
