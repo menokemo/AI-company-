@@ -199,8 +199,37 @@ def get_coder_model():
         return "openai/claude"
 
 
+def _get_conversation_status(conv_id: str) -> dict:
+    """يجيب حالة محادثة OpenHands الحالية."""
+    req = urllib.request.Request(
+        f"{OPENHANDS_URL}/api/v1/app-conversations/{conv_id}", method="GET"
+    )
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.load(r)
+
+
+def _create_oh_conversation(payload: dict) -> dict:
+    """نداء واحد لإنشاء محادثة في OpenHands."""
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{OPENHANDS_URL}/api/v1/app-conversations",
+        data=body, method="POST"
+    )
+    req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.load(r)
+
+
 def start_coding(full_name, task, description="", document_content=""):
-    """إرسال مهمة لـ OpenHands V1 API"""
+    """إرسال مهمة لـ OpenHands V1 API.
+
+    إعادة محاولة تلقائية: OpenHands V1 له مشكلة معروفة (race condition وقت
+    إقلاع الـ sandbox container — راجع GitHub Issue #12500) تجعله أحياناً
+    يدخل 'error state' فقط لأن فحص الجاهزية حصل قبل اكتمال الإقلاع بثوانٍ
+    قليلة، بينما الـ sandbox نفسه سليم تماماً. نتحقق من الحالة بعد إنشاء
+    المحادثة، ولو ظهر الخطأ المؤقت ده، نعيد المحاولة بمحادثة جديدة (حتى ٢
+    محاولات إضافية) قبل الإفادة بالفشل للمستخدم.
+    """
     msg = (
         f"Work on this GitHub repository: {full_name}\n\n"
         f"The repository is already cloned in your workspace. "
@@ -222,28 +251,49 @@ def start_coding(full_name, task, description="", document_content=""):
         "selected_branch": "main",
         "llm_model": get_coder_model(),
     }
-    try:
-        body = json.dumps(payload).encode()
-        req = urllib.request.Request(
-            f"{OPENHANDS_URL}/api/v1/app-conversations",
-            data=body, method="POST"
-        )
-        req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=15) as r:
-            d = json.load(r)
-            conv_id = d.get("id") or d.get("conversation_id")
-            return {
-                "success": True,
-                "conversation_id": conv_id,
-                "status": d.get("status"),
-                "url": f"http://{HOST_IP}:3000",
-                "conversation_url": f"http://{HOST_IP}:3000/conversations/{conv_id}" if conv_id else None
-            }
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode()
-        return {"success": False, "error": f"HTTP {e.code}: {err_body[:200]}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)[:100]}
+
+    import time as _time
+    last_error = None
+    for attempt in range(3):  # محاولة أولى + ٢ إعادة محاولة
+        try:
+            d = _create_oh_conversation(payload)
+        except urllib.error.HTTPError as e:
+            last_error = f"HTTP {e.code}: {e.read().decode()[:200]}"
+            continue
+        except Exception as e:
+            last_error = str(e)[:150]
+            continue
+
+        conv_id = d.get("id") or d.get("conversation_id")
+        if not conv_id:
+            last_error = "لم يرجع OpenHands conversation_id"
+            continue
+
+        # نتحقق بسرعة لو الـ sandbox دخل 'error state' المؤقت المعروف
+        status = d.get("status")
+        for _ in range(6):  # ~12 ثانية فحص قصير
+            if status != "ERROR":
+                break
+            _time.sleep(2)
+            try:
+                d2 = _get_conversation_status(conv_id)
+                status = d2.get("status", status)
+            except Exception:
+                break
+
+        if status == "ERROR":
+            last_error = f"Sandbox entered error state (محاولة {attempt + 1}/3)"
+            continue  # إعادة المحاولة بمحادثة جديدة
+
+        return {
+            "success": True,
+            "conversation_id": conv_id,
+            "status": status,
+            "url": f"http://{HOST_IP}:3000",
+            "conversation_url": f"http://{HOST_IP}:3000/conversations/{conv_id}"
+        }
+
+    return {"success": False, "error": last_error or "فشل غير معروف بعد 3 محاولات"}
 
 
 class H(BaseHTTPRequestHandler):
