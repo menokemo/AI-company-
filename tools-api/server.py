@@ -327,7 +327,7 @@ class H(BaseHTTPRequestHandler):
                 with urllib.request.urlopen(req2, timeout=180) as r2:
                     result = json.load(r2)
                 # حفظ الـ mockups
-                host_ip = os.environ.get("HOST_IP","192.168.2.29")
+                host_ip = os.environ.get("HOST_IP", "localhost")
                 saved = []
                 for m in result.get("mockups",[]):
                     mid = save_mockup(m["html"], b.get("name",""), m["style"], m["id"])
