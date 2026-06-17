@@ -22,6 +22,57 @@
 
 
 
+
+---
+
+## جلسة 2026-06-17 — Project Manager Creation: السبب الجذري الكامل
+
+سلسلة من 9 bugs متراكمة كانت بتمنع إنشاء موديل "مدير المشروع" في Open WebUI من داخل tools-api container:
+
+### 1. BASE URL hardcoded
+`BASE = "http://localhost:8888"` — من داخل tools-api container، `localhost` يشاور على نفسه مش Open WebUI.
+**الحل:** `os.environ.get("OPENWEBUI_URL", "http://localhost:8888")`
+
+### 2. Internal port غلط
+docker-compose port mapping `8888:8080` يعني الـ port الداخلي هو 8080 لا 8888.
+**الحل:** `OPENWEBUI_URL=http://ai-open-webui:8080` في docker-compose.
+
+### 3. tools-api/ directory غير mounted
+`system-prompt.md` و `openwebui_tools.py` غير موجودين جوه الـ container (فقط server.py بيتم COPY في build).
+**الحل:** mount صريح لكل ملف على نفس المسار المطلق في docker-compose.
+
+### 4. منطق "tool exists" كان بيقفل الكود كله
+`if existing: return 0` كان بيوقف قبل الوصول لقسم إنشاء الموديل بالكامل.
+**الحل:** فصل منطق رفع الـ tool عن منطق إنشاء الموديل.
+
+### 5. Model id فيه hyphens
+`ai-company-project-manager` — Open WebUI يرفض الـ hyphens في الـ id.
+**الحل:** `ai_company_project_manager`.
+
+### 6. Key mismatch بين الكود والـ config
+الكود بيدوّر على `project_manager` لكن `models.json` بيستخدم `manager`.
+**الحل:** توحيد الاسم لـ `manager` في كل الملفات.
+
+### 7. Hardcoded config path
+`/opt/ai-company/config/models.json` غير موجود جوه الـ container (الـ volume على `/app/config`).
+**الحل:** `os.environ.get("CONFIG_FILE", "/app/config/models.json")`.
+
+### 8. Trailing slash في `/api/v1/models/`
+بيرجع الـ SPA HTML (200 OK) مش JSON. بدون الـ slash بيرجع الـ API الصحيح.
+**الحل:** شيل الـ trailing slash + قراءة `.get("data", [])` من الرد.
+
+### 9. `access_grants: null` بيكسر pydantic validation
+Open WebUI's `ModelForm` schema يطلب `access_grants` كـ list مش None — كان بيرجع 500 Internal Server Error.
+**الحل:** إضافة `"access_grants": []` و `"is_active": True` في الـ payload.
+
+### النتيجة النهائية
+```
+[✓] Tool already exists — skipping upload
+[✓] Project Manager model updated!
+```
+ظهر فعلياً في Open WebUI ✅
+
+---
 ---
 
 ## جلسة 2026-06-16 (مساء) — Wizard + UX Fixes
