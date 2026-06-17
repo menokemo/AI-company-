@@ -8,7 +8,7 @@ import urllib.request
 from typing import Optional
 
 TOOLS_API = os.environ.get("TOOLS_API_URL", "http://ai-tools-api:9000")
-HOST_IP   = os.environ.get("HOST_IP", "192.168.2.29")
+HOST_IP   = os.environ.get("HOST_IP", "localhost")
 
 
 class Tools:
