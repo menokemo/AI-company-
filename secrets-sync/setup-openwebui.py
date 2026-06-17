@@ -139,7 +139,8 @@ def main():
         "base_model_id": base_model,
         "meta": {
             "description": "مدير مشاريع ذكاء اصطناعي — يحوّل أفكارك لتطبيقات حقيقية",
-            "capabilities": {"tools": True}
+            "capabilities": {"tools": True},
+            "toolIds": ["ai_company_tools"]
         },
         "params": {
             "system": sys_prompt,
