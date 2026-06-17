@@ -226,15 +226,25 @@ def generate_design_options(project: dict) -> dict:
     ]
 
     def call_llm(model_str, prompt_text):
-        import requests as _r
+        import requests as _r, time as _t
         msgs = [{"role": "user", "content": prompt_text}]
         if "/" in model_str:
             import litellm
-            resp = litellm.completion(
-                model=model_str, messages=msgs,
-                max_tokens=4096, temperature=0.7,
-            )
-            return resp.choices[0].message.content
+            last_exc = None
+            for _attempt in range(3):
+                try:
+                    resp = litellm.completion(
+                        model=model_str, messages=msgs,
+                        max_tokens=4096, temperature=0.7,
+                    )
+                    return resp.choices[0].message.content
+                except litellm.RateLimitError as _e:
+                    # موديلات OpenRouter المجانية (":free") كثيراً ما تُرفض
+                    # مؤقتاً بـ rate-limit — إعادة محاولة بعد انتظار قصير
+                    last_exc = _e
+                    _t.sleep(9)
+                    continue
+            raise last_exc
         else:
             lurl = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
             lkey = os.environ.get("LITELLM_API_KEY", "")
