@@ -24,6 +24,46 @@
 
 
 
+
+---
+
+## جلسة 2026-06-17 (تابع) — Audit شامل: hardcoded values كانت بتلغي اختيارات لوحة التحكم
+
+المستخدم لاحظ إن كل المنظومة بتشتغل بـ Claude بس، رغم اختيار موديلات مختلفة من لوحة التحكم. تم عمل audit كامل للريبو فلقينا 5 مشاكل حقيقية:
+
+### 🔴 [الأهم] `pipeline.py`: `_model()` كانت بتقرأ env var غير موجود
+```python
+# قبل (خطأ):
+def _model(env_key, default="claude"):
+    return os.environ.get(env_key, default)   # env_key="doc_analyzer" — مفيش متغيّر بهذا الاسم!
+
+# بعد (صحيح):
+def _model(agent_key, default="claude"):
+    cfg = json.load(open(CONFIG_FILE))
+    return cfg.get(agent_key) or default
+```
+**الأثر:** كل الـ 6 agents في crew pipeline (محلل النصوص، الباحث، المصمم، المخطط، حلّال المشاكل، المراجع) كانوا **دايماً** بيستخدموا alias `"claude"` بغض النظر عن أي اختيار محفوظ في `models.json` من لوحة التحكم. هذا كان موجوداً منذ كتابة الكود الأصلي — مش حاجة استجدت من تعديلاتنا.
+
+### 🔴 `crew.py`: `start_openhands()` فيها `"llm_model": "openai/claude"` مكتوبة يدويًا
+نفس النمط بالظبط اللي صلحناه في `tools-api/server.py`، لكن في مسار تنفيذ منفصل بالكامل (الـ `/run-pipeline` الكامل، مختلف عن `/create-and-start`). تم إصلاحها بدالة `get_coder_model()` تقرأ `models.json["coder"]`.
+
+### 🟡 IP شخصي (`192.168.2.29`) كـ fallback في حالة غياب `HOST_IP`
+موجود في `tools-api/server.py` و `tools-api/openwebui_tools.py`. خطر لأي تنصيب على VM مختلف. تم تغييره لـ `"localhost"`.
+
+### 🟡 `setup-infisical.py`: `BASE` مكتوبة `http://localhost:8080` بدون إمكانية تغييرها
+نفس فئة الـ bug اللي صلحناه سابقاً لـ Open WebUI (لما السكربت يتنفّذ من داخل container، `localhost` تشاور على نفسه). أصبحت قابلة للتعديل عبر `INFISICAL_API_URL`.
+
+### 🟡 `crew-service/ui.html`: قائمة موديلات فيها قيم غير موجودة فعليًا
+`MODELS = [...,"claude-opus","gpt-4o"]` — لكن `litellm-config.yaml` يعرّف فقط 3 aliases (`claude`, `gpt`, `openrouter-auto`). اختيار أي من القيمتين الزائدتين من واجهة crew-service مباشرة كان سيفشل. تم حذفهما.
+
+### 🧹 كود ميت تم حذفه
+- `code-writer/` — تصميم قديم (v0.23.0) استُبدل بـ OpenHands بعد كده، غير متصل بـ `docker-compose.yml` أبداً
+- `llm-gateway/` — نسخة مكررة قديمة من `infrastructure/litellm-config.yaml`، غير مستخدمة
+
+### الدرس المستفاد
+أي قيمة (موديل، IP، URL) لازم تُقرأ من `config/models.json` أو متغيّرات البيئة **فعليًا وقت التنفيذ** — لا اعتماد على افتراضات مكتوبة في الكود، حتى لو بدت "افتراض منطقي وقتها".
+
+---
 ---
 
 ## جلسة 2026-06-17 (تابع) — Sync لا يُطبّق الـ secrets فعلياً
