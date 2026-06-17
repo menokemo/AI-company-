@@ -81,27 +81,33 @@ def main():
     existing = [t for t in (tools_data if isinstance(tools_data, list) else [])
                 if t.get("name") == "AI Company Tools"]
 
-    if existing:
-        print("  [✓] Tool already exists — skipping upload")
-    else:
-        try:
-            tool_content = open(TOOL_FILE, encoding="utf-8").read()
-        except:
-            print(f"  [!] Tool file not found: {TOOL_FILE}")
-            tool_content = None
+    try:
+        tool_content = open(TOOL_FILE, encoding="utf-8").read()
+    except:
+        print(f"  [!] Tool file not found: {TOOL_FILE}")
+        tool_content = None
 
-        if tool_content:
+    if tool_content:
+        tool_payload = {
+            "id":          "ai_company_tools",
+            "name":        "AI Company Tools",
+            "content":     tool_content,
+            "meta":        {"description": "Generate mockups and create projects"},
+        }
+        if existing:
+            print("  Updating AI Company Tools (content may have changed)...")
+            data, status = req("POST", "/api/v1/tools/id/ai_company_tools/update", tool_payload, token=token)
+            if status in (200, 201):
+                print("  [✓] Tool updated successfully!")
+            else:
+                print(f"  [!] Tool update failed ({status}): {str(data)[:150]}")
+        else:
             print("  Uploading AI Company Tools...")
-            data, status = req("POST", "/api/v1/tools/create", {
-                "id":          "ai_company_tools",
-                "name":        "AI Company Tools",
-                "content":     tool_content,
-                "meta":        {"description": "Generate mockups and create projects"},
-            }, token=token)
+            data, status = req("POST", "/api/v1/tools/create", tool_payload, token=token)
             if status in (200, 201):
                 print("  [✓] Tool uploaded successfully!")
             else:
-                print(f"  [!] Tool upload failed ({status}): {data}")
+                print(f"  [!] Tool upload failed ({status}): {str(data)[:150]}")
 
     # ── Create Project Manager model ─────────────────────────────
     print("  Creating Project Manager model...")
