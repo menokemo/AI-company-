@@ -18,8 +18,24 @@ def get_coder_model():
         return "openai/claude"
 
 PORT          = int(os.environ.get("PORT", "9002"))
-RUN_HISTORY   = []   # سجل pipeline runs
+HISTORY_FILE  = os.environ.get("HISTORY_FILE", "/app/config/run_history.json")
 CURRENT_RUN   = {"running": False, "project": "", "current": "", "done": []}
+
+def _load_history() -> list:
+    """يحمّل سجل التشغيلات السابقة من ملف على القرص (ينجو من إعادة تشغيل الـ container)."""
+    try:
+        return json.load(open(HISTORY_FILE, encoding="utf-8"))
+    except Exception:
+        return []
+
+def _save_history():
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(RUN_HISTORY[-200:], f, ensure_ascii=False)  # حد أقصى 200 تشغيلة
+    except Exception as e:
+        print(f"[!] فشل حفظ سجل التشغيلات: {e}")
+
+RUN_HISTORY = _load_history()   # سجل pipeline runs — محفوظ على القرص
 OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 def get_github_token() -> str:
     """يقرأ GITHUB_TOKEN من ملف .env مباشرة في كل استدعاء — لا constant ثابت
@@ -96,7 +112,7 @@ def full_pipeline(project: dict) -> dict:
 
     try:
         crew_result = run_pipeline(project, status_cb=lambda stage: _update_status(stage))
-        result["stages"]     = {k: v[:300] + "..." for k, v in crew_result["stages"].items()}
+        result["stages"]     = {k: (v[:1500] + ("..." if len(v) > 1500 else "")) for k, v in crew_result["stages"].items()}
         result["stages"]["_crew_ok"] = True
 
         CURRENT_RUN["current"] = "openhands"
@@ -111,9 +127,10 @@ def full_pipeline(project: dict) -> dict:
         result["trace"]   = traceback.format_exc()[-500:]
 
     result["duration_s"] = round(time.time() - start)
-    result["time"] = time.strftime("%H:%M")
+    result["time"] = time.strftime("%Y-%m-%d %H:%M:%S")
     CURRENT_RUN = {"running": False, "project": "", "current": "", "done": []}
     RUN_HISTORY.append(result)
+    _save_history()
     return result
 
 def _update_status(stage: str):
