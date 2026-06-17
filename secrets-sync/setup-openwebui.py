@@ -114,9 +114,11 @@ def main():
     # جيب الموديل من config/models.json
     try:
         import json as _json
-        models_cfg = _json.loads(open("/opt/ai-company/config/models.json").read())
+        models_path = os.environ.get("CONFIG_FILE", "/app/config/models.json")
+        models_cfg = _json.loads(open(models_path).read())
         base_model = models_cfg.get("manager", "")
-    except:
+    except Exception as e:
+        print(f"  [!] Could not read models config: {e}")
         base_model = ""
 
     if not base_model:
