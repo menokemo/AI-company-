@@ -147,6 +147,7 @@ services:
     volumes:
       - /opt/ai-company/config:/app/config
       - /opt/ai-company/infrastructure/.env:/opt/ai-company/infrastructure/.env
+      - /opt/ai-company/infrastructure/docker-compose.yml:/opt/ai-company/infrastructure/docker-compose.yml:ro
       - /opt/ai-company/secrets-sync:/opt/ai-company/secrets-sync:ro
       - /opt/ai-company/tools-api/system-prompt.md:/opt/ai-company/tools-api/system-prompt.md:ro
       - /opt/ai-company/tools-api/openwebui_tools.py:/opt/ai-company/tools-api/openwebui_tools.py:ro
