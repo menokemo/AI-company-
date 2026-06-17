@@ -66,6 +66,13 @@ if [ ! -f "/.dockerenv" ]; then
         up -d --force-recreate tools-api 2>/dev/null || true
 fi
 
+# ── تحديد عنوان OpenHands الصحيح (مختلف لو شغّال من الـ host أو من داخل container) ──
+if [ -f "/.dockerenv" ]; then
+    OH_HOST="http://ai-openhands:3000"
+else
+    OH_HOST="http://localhost:3000"
+fi
+
 # ── ربط GitHub بـ OpenHands ──────────────────────────────────────────────────
 GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
 GIT_USERNAME=$(grep "^GIT_USERNAME=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
@@ -73,11 +80,44 @@ GIT_USERNAME=$(grep "^GIT_USERNAME=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || e
 if [ -n "$GITHUB_TOKEN" ] && [ -n "$GIT_USERNAME" ]; then
     log "ربط GitHub بـ OpenHands..."
     sleep 5
-    resp=$(curl -sf -X POST "http://localhost:3000/api/v1/secrets/git-providers" \
+    resp=$(curl -sf -X POST "$OH_HOST/api/v1/secrets/git-providers" \
         -H "Content-Type: application/json" \
         -d "{\"provider_tokens\":{\"github\":{\"token\":\"$GITHUB_TOKEN\",\"user_id\":\"$GIT_USERNAME\",\"host\":\"github.com\"}}}" \
         2>/dev/null || echo "")
     echo "$resp" | grep -q "stored" && log "✓ GitHub متصل بـ OpenHands" || true
+fi
+
+# ── ضبط LLM الخاص بـ OpenHands (Settings API) تلقائيًا ──────────────────────────
+LITELLM_MASTER_KEY=$(grep "^LITELLM_MASTER_KEY=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
+HOST_IP=$(grep "^HOST_IP=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "localhost")
+
+if [ -n "$LITELLM_MASTER_KEY" ]; then
+    log "ضبط إعدادات LLM لـ OpenHands..."
+    sleep 2
+    python3 - "$OH_HOST" "$LITELLM_MASTER_KEY" "$HOST_IP" << 'OHCFG'
+import sys, json, urllib.request
+oh_host, master_key, host_ip = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {
+    "agent_settings_diff": {
+        "llm": {
+            "model": "openai/claude",
+            "api_key": master_key,
+            "base_url": f"http://{host_ip}:4000",
+        }
+    }
+}
+req = urllib.request.Request(
+    f"{oh_host}/api/v1/settings",
+    data=json.dumps(payload).encode(),
+    method="POST",
+)
+req.add_header("Content-Type", "application/json")
+try:
+    r = urllib.request.urlopen(req, timeout=15)
+    print("[+] تم ضبط إعدادات LLM لـ OpenHands بنجاح" if r.status == 200 else f"[!] رد غير متوقع: {r.status}")
+except Exception as e:
+    print(f"[!] فشل ضبط إعدادات OpenHands LLM: {e}")
+OHCFG
 fi
 
 log "✅ تم الـ sync بنجاح!"
