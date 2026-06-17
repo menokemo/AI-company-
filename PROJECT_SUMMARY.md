@@ -62,11 +62,16 @@ OpenHands → GitHub Repo → Pull Request
 | `infrastructure/.env` | كل الـ secrets (مولّدة) |
 | `config/models.json` | موديلات الـ agents |
 | `config/agent-prompts.json` | prompts الـ agents |
+| `config/run_history.json` | سجل أعمال الموظفين (يُكتب أوتوماتيك) |
 | `tools-api/system-prompt.md` | prompt مدير المشروع |
 | `crew-service/pipeline.py` | Pipeline الـ 6 agents |
 | `secrets-sync/setup-*.py` | إعداد الخدمات |
 
+## الميزات
+- **سجل أعمال الموظفين** (تبويب في لوحة التحكم): يعرض كل تشغيلة سابقة — ماذا أنتج كل agent + نتيجة OpenHands، محفوظ على القرص. الـ API: `GET /run-history` (tools-api).
+- **إعادة محاولة تلقائية**: لـ race condition معروف في OpenHands SDK (sandbox startup)، ولـ rate-limit الموديلات المجانية في OpenRouter.
+
 ## الـ PENDING
-- [ ] اختبار Pipeline كامل من Open WebUI لـ OpenHands
-- [ ] إنشاء مدير المشروع أوتوماتيك بعد اختيار الموديل
+- [x] اختبار Pipeline كامل من Open WebUI لـ OpenHands — تم التأكد فعليًا (commit حقيقي + كود مكتوب) في 2026-06-17
+- [x] إنشاء مدير المشروع أوتوماتيك بعد اختيار الموديل — مُنفّذ في `setup-openwebui.py`
 - [ ] PR creation من OpenHands
