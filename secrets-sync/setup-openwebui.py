@@ -52,34 +52,34 @@ def req(method, path, data=None, token=None, retry=MAX_RETRIES):
     return {}, 0
 
 def wait_ready(max_wait=300):
-    """Wait for Open WebUI to be ready - use curl for reliability"""
+    """Wait for Open WebUI to be ready using curl"""
     import subprocess
+    import time
     
     print(f"  Waiting for Open WebUI (max {max_wait}s)...")
     
-    for attempt in range(max_wait):
+    for second in range(1, max_wait + 1):
         try:
-            # Use curl with short timeout
             result = subprocess.run(
-                ["curl", "-sf", "-m", "3", f"{BASE}/"],
+                ["curl", "-sf", "-m", "2", f"{BASE}/"],
                 capture_output=True,
-                timeout=5
+                timeout=3
             )
             
+            # returncode 0 = success
             if result.returncode == 0:
-                print("\n  [✓] Open WebUI is ready!")
+                print(f"\n  [✓] Open WebUI is ready! (after {second}s)")
                 return True
-        except Exception:
+        except Exception as e:
             pass
         
-        # Show progress every 10 seconds
-        if (attempt + 1) % 10 == 0:
-            remaining = max_wait - (attempt + 1)
-            print(f"    [{attempt + 1}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
+        # Progress indicator
+        if second % 10 == 0:
+            print(f"    Still waiting... [{second}s/{max_wait}s]", end="\r")
         
         time.sleep(1)
     
-    print(f"\n  [!] Open WebUI not ready after {max_wait}s")
+    print(f"\n  [!] Timeout after {max_wait}s - Open WebUI not responding")
     return False
 
 def main():
