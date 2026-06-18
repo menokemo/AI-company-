@@ -52,45 +52,30 @@ def req(method, path, data=None, token=None, retry=MAX_RETRIES):
     return {}, 0
 
 def wait_ready(max_wait=300):
-    """Wait for Open WebUI to be ready"""
+    """Wait for Open WebUI to be ready - simple and direct"""
     print(f"  Waiting for Open WebUI (max {max_wait}s)...")
-    for attempt in range(max_wait // 5):
+    
+    for attempt in range(max_wait):
         try:
-            # Try to connect to the API
-            req_obj = urllib.request.Request(
-                f"{BASE}/api/v1/auths/signin", 
-                data=json.dumps({"email":"test","password":"test"}).encode(),
-                method="POST"
-            )
-            req_obj.add_header("Content-Type", "application/json")
-            
-            try:
-                response = urllib.request.urlopen(req_obj, timeout=10)
-                # If we get here, the API is responding (any 2xx response)
-                print("  [✓] Open WebUI is ready!")
+            # Simple test: try to GET the home page
+            response = urllib.request.urlopen(f"{BASE}/", timeout=5)
+            if response.status == 200:
+                print("\n  [✓] Open WebUI is ready!")
                 return True
-            except urllib.error.HTTPError as e:
-                # We expect 400/401/422 errors (wrong credentials) - that means it's responding!
-                if e.code in (400, 401, 422):
-                    print("  [✓] Open WebUI is ready!")
-                    return True
-                # For other HTTP errors, keep waiting
-                raise e
-                
-        except (urllib.error.URLError, TimeoutError, OSError):
-            # Connection not ready yet, keep waiting
-            elapsed = (attempt + 1) * 5
-            remaining = max_wait - elapsed
-            if remaining > 0:
-                print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
-            time.sleep(5)
-        except Exception as e:
-            # For any other error, keep waiting
-            elapsed = (attempt + 1) * 5
-            remaining = max_wait - elapsed
-            if remaining > 0:
-                print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
-            time.sleep(5)
+        except urllib.error.HTTPError as e:
+            # Any response (even 400) means the server is up
+            if 200 <= e.code < 500:
+                print("\n  [✓] Open WebUI is ready!")
+                return True
+        except Exception:
+            pass
+        
+        # Show progress every 10 seconds
+        if (attempt + 1) % 10 == 0:
+            remaining = max_wait - (attempt + 1)
+            print(f"    [{attempt + 1}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
+        
+        time.sleep(1)
     
     print(f"\n  [!] Open WebUI not ready after {max_wait}s")
     return False
