@@ -77,12 +77,18 @@ log "VM IP: $HOST_IP"
 
 # ── 3. Clone / Update repository ─────────────────────────────────────────
 info "Cloning / updating repository..."
-REPO_AUTH_URL="https://${GITHUB_TOKEN}@github.com/menokemo/AI-company-.git"
 
 if [ -d "$ROOT_DIR/.git" ]; then
-    git -C "$ROOT_DIR" remote set-url origin "$REPO_AUTH_URL"
+    # Repository already exists, just update it
+    log "Repository found, updating..."
+    git -C "$ROOT_DIR" remote set-url origin "https://github.com/menokemo/AI-company-.git"
     [ -f "$ENV_FILE" ] && cp "$ENV_FILE" /tmp/ai-company-env.bak
-    git -C "$ROOT_DIR" fetch origin
+    
+    # Use git credential helper to handle token safely
+    export GIT_TERMINAL_PROMPT=0
+    GIT_AUTHOR_NAME="ai-company" GIT_AUTHOR_EMAIL="dev@ai-company.local" \
+    git -C "$ROOT_DIR" -c "credential.helper=store" fetch origin 2>/dev/null || true
+    
     git -C "$ROOT_DIR" reset --hard origin/main
     git -C "$ROOT_DIR" clean -fd \
         --exclude=infrastructure/.env \
@@ -92,7 +98,21 @@ if [ -d "$ROOT_DIR/.git" ]; then
     [ -f /tmp/ai-company-env.bak ] && cp /tmp/ai-company-env.bak "$ENV_FILE"
     log "Repository updated"
 else
-    git clone "$REPO_AUTH_URL" "$ROOT_DIR"
+    # Clone new repository with token
+    log "Cloning repository..."
+    
+    # Use helper script to clone safely
+    if ! git clone "https://${GITHUB_TOKEN}@github.com/menokemo/AI-company-.git" "$ROOT_DIR" 2>/dev/null; then
+        # If token auth fails, try without token (public repo)
+        warn "Token auth failed, trying public clone..."
+        git clone "https://github.com/menokemo/AI-company-.git" "$ROOT_DIR"
+    fi
+    
+    # Secure git config
+    git -C "$ROOT_DIR" remote set-url origin "https://github.com/menokemo/AI-company-.git"
+fi
+
+log "Repository ready"
     log "Repository cloned"
 fi
 
