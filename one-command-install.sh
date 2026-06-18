@@ -2,9 +2,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # AI Company — One Command Complete Installation
 # ══════════════════════════════════════════════════════════════════════════════
-# Download and run with:
-#   curl -fsSL https://raw.githubusercontent.com/menokemo/AI-company-/main/one-command-install.sh | sudo bash
-# OR:
+# Run with:
 #   sudo bash one-command-install.sh [--github-token TOKEN]
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -25,7 +23,6 @@ err()  { echo -e "${RED}[✗]${NC} $*"; exit 1; }
 
 # Configuration
 INSTALL_DIR="/opt/ai-company"
-REPO_URL="https://github.com/menokemo/AI-company-.git"
 GITHUB_TOKEN=""
 
 # Parse arguments
@@ -96,58 +93,48 @@ if [ "$SUDO_USER" != "root" ]; then
 fi
 log "Docker permissions configured"
 
-# Step 5: Stop and remove old installation
-if [ -d "$INSTALL_DIR" ]; then
-    warn "Found old installation at $INSTALL_DIR"
-    info "Cleaning up..."
-    
-    # Stop services
-    if [ -f "$INSTALL_DIR/infrastructure/docker-compose.yml" ]; then
-        docker compose -f "$INSTALL_DIR/infrastructure/docker-compose.yml" down -v 2>/dev/null || true
-    fi
-    
+# Step 5: Stop old services (if exist)
+if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/infrastructure/docker-compose.yml" ]; then
+    warn "Found existing installation - stopping services..."
+    docker compose -f "$INSTALL_DIR/infrastructure/docker-compose.yml" down -v 2>/dev/null || true
     sleep 2
-    rm -rf "$INSTALL_DIR"
+    log "Old services stopped"
 fi
 
-# Step 6: Create installation directory
-info "Creating installation directory..."
-mkdir -p "$INSTALL_DIR"
-chmod 755 "$INSTALL_DIR"
-cd "$INSTALL_DIR"
-log "Directory created: $INSTALL_DIR"
-
-# Step 7: Clone repository
-info "Cloning repository from GitHub..."
-git clone "$REPO_URL" . 2>&1 | grep -E "^(Cloning|Receiving|Resolving)" || true
-log "Repository cloned"
-
-# Step 8: Secure git configuration
-info "Securing git configuration..."
-git remote set-url origin "$REPO_URL"
-log "Git secured"
-
-# Step 9: Setup environment file
-info "Setting up environment..."
-if [ ! -f .env ]; then
-    cp .env.example .env
-    chmod 600 .env
+# Step 6: Make sure we have fresh install directory
+info "Preparing installation directory..."
+if [ -d "$INSTALL_DIR/.git" ]; then
+    log "Repository found - will update"
+else
+    info "Creating fresh directory..."
+    rm -rf "$INSTALL_DIR" 2>/dev/null || true
+    mkdir -p "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR"
+    log "Directory ready"
 fi
-log "Environment configured"
 
-# Step 10: Make scripts executable
-chmod +x install.sh bootstrap.sh quick-install.sh one-command-install.sh 2>/dev/null || true
-log "Scripts are executable"
-
-# Step 11: Run full installation
+# Step 7: Run install.sh (handles everything - clone/update/install)
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-info "Starting full Docker installation..."
+info "Starting full installation..."
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
 export INSTALL_DIR
-bash install.sh --github-token "$GITHUB_TOKEN"
+cd "$INSTALL_DIR"
+
+# Ensure install.sh exists
+if [ ! -f "install.sh" ]; then
+    info "Cloning repository first..."
+    git clone https://github.com/menokemo/AI-company-.git . || err "Failed to clone repository"
+    log "Repository cloned"
+fi
+
+# Make executable
+chmod +x install.sh
+
+# Run installation
+bash install.sh --github-token "$GITHUB_TOKEN" || err "Installation failed"
 
 # Success
 echo ""
@@ -155,13 +142,16 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${GREEN}║           Installation Completed Successfully!           ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Next steps:"
-echo "  1. Wait 1-2 minutes for all services to start"
-echo "  2. Check services: docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml ps"
-echo "  3. Open browser: http://$(hostname -I | awk '{print $1}'):8888"
+echo "📊 Status:"
+echo "  Directory: $INSTALL_DIR"
+echo "  Services: docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml ps"
 echo ""
-echo "Useful commands:"
-echo "  View logs:      docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml logs -f"
-echo "  Restart:        docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml restart"
-echo "  Stop:           docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml down"
+echo "🌐 Access:"
+echo "  URL: http://$(hostname -I | awk '{print $1}'):8888"
 echo ""
+echo "📝 Useful commands:"
+echo "  Logs:      docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml logs -f"
+echo "  Restart:   docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml restart"
+echo "  Stop:      docker compose -f $INSTALL_DIR/infrastructure/docker-compose.yml down"
+echo ""
+
