@@ -57,6 +57,20 @@ command -v openssl >/dev/null 2>&1 || err "OpenSSL not installed"
 docker compose version >/dev/null 2>&1 || err "Docker Compose V2 not installed"
 log "Prerequisites OK"
 
+# ── 1.5. Configure Docker permissions ─────────────────────────────────────
+info "Configuring Docker permissions..."
+CURRENT_USER=$(whoami)
+if [ "$CURRENT_USER" != "root" ]; then
+    if ! groups "$CURRENT_USER" | grep -q docker; then
+        warn "Adding $CURRENT_USER to docker group..."
+        usermod -aG docker "$CURRENT_USER"
+        newgrp docker <<EOF
+echo "Docker permissions updated for $CURRENT_USER"
+EOF
+    fi
+fi
+log "Docker permissions OK"
+
 # ── 2. Detect VM IP ───────────────────────────────────────────────────────
 HOST_IP=$(hostname -I | awk '{print $1}')
 log "VM IP: $HOST_IP"
