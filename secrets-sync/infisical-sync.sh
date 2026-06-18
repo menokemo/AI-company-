@@ -32,12 +32,13 @@ if [ -z "${INFISICAL_CLIENT_ID:-}" ] || [ -z "${INFISICAL_CLIENT_SECRET:-}" ] ||
     err "بيانات اتصال Infisical غير مكتملة — أدخلها في لوحة التحكم → Infisical Setup"
     exit 1
 fi
-INFISICAL_API_URL="${INFISICAL_API_URL:-http://localhost:8080}"
+INFISICAL_URL="${INFISICAL_URL:-http://ai-infisical:8080}"
+INFISICAL_API_URL="${INFISICAL_API_URL:-${INFISICAL_URL}}"
 INFISICAL_ENV="${INFISICAL_ENV:-dev}"
 
 # ── سحب المفاتيح من Infisical ────────────────────────────────────────────────
 log "سحب المفاتيح من Infisical..."
-INFISICAL_API_URL="${INFISICAL_API_URL:-http://localhost:8080}" \
+INFISICAL_API_URL="${INFISICAL_API_URL}" \
 INFISICAL_CLIENT_ID="$INFISICAL_CLIENT_ID" \
 INFISICAL_CLIENT_SECRET="$INFISICAL_CLIENT_SECRET" \
 INFISICAL_PROJECT_ID="$INFISICAL_PROJECT_ID" \
@@ -48,7 +49,8 @@ python3 "$SCRIPT_DIR/sync.py"
 
 # ── توليد إعدادات OpenHands ──────────────────────────────────────────────────
 log "توليد إعدادات OpenHands..."
-OPENHANDS_STATE_DIR="/opt/ai-company/data/openhands-state" \
+INSTALL_DIR="${INSTALL_DIR:-/opt/ai-company}" \
+OPENHANDS_STATE_DIR="${INSTALL_DIR}/data/openhands-state" \
 ENV_FILE="$ENV_FILE" \
 python3 "$SCRIPT_DIR/generate-openhands-config.py"
 

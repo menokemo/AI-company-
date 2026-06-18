@@ -10,7 +10,7 @@ import json
 import urllib.request
 import urllib.error
 
-API = os.environ.get("INFISICAL_API_URL", "http://localhost:8080").rstrip("/")
+API = os.environ.get("INFISICAL_URL", os.environ.get("INFISICAL_API_URL", "http://ai-infisical:8080")).rstrip("/")
 CID = os.environ["INFISICAL_CLIENT_ID"]
 CSEC = os.environ["INFISICAL_CLIENT_SECRET"]
 PID = os.environ["INFISICAL_PROJECT_ID"]

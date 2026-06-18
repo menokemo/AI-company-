@@ -3,7 +3,8 @@
 import sys, re, os
 
 # Parse args: KEY=VALUE pairs + ENV_FILE=path
-env_file = "/opt/ai-company/infrastructure/.env"
+install_dir = os.environ.get("INSTALL_DIR", "/opt/ai-company")
+env_file = os.path.join(install_dir, "infrastructure", ".env")
 updates = {}
 for arg in sys.argv[1:]:
     if arg.startswith("ENV_FILE="):

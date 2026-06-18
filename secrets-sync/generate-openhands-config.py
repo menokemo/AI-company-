@@ -5,8 +5,9 @@
 """
 import os, json, pathlib, socket
 
-STATE_DIR = os.environ.get("OPENHANDS_STATE_DIR", "/opt/ai-company/data/openhands")
-ENV_FILE  = os.environ.get("ENV_FILE", "/opt/ai-company/infrastructure/.env")
+INSTALL_DIR = os.environ.get("INSTALL_DIR", "/opt/ai-company")
+STATE_DIR = os.environ.get("OPENHANDS_STATE_DIR", os.path.join(INSTALL_DIR, "data", "openhands"))
+ENV_FILE  = os.environ.get("ENV_FILE", os.path.join(INSTALL_DIR, "infrastructure", ".env"))
 
 # ── قراءة .env ──────────────────────────────────────────────────────
 env = {}
@@ -36,13 +37,14 @@ out_dir = pathlib.Path(STATE_DIR)
 out_dir.mkdir(parents=True, exist_ok=True)
 
 config_toml = out_dir / "config.toml"
+workspace_base = os.path.join(INSTALL_DIR, "data", "workspace")
 config_toml.write_text(f"""[llm]
 model = "openai/claude"
 base_url = "http://{host_ip}:4000"
 api_key = "{master_key}"
 
 [core]
-workspace_base = "/opt/workspace"
+workspace_base = "{workspace_base}"
 """, encoding="utf-8")
 
 # ── git credentials ───────────────────────────────────────────────

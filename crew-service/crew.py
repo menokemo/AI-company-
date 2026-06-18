@@ -19,6 +19,7 @@ def get_coder_model():
 
 PORT          = int(os.environ.get("PORT", "9002"))
 HISTORY_FILE  = os.environ.get("HISTORY_FILE", "/app/config/run_history.json")
+INSTALL_DIR   = os.environ.get("INSTALL_DIR", "/opt/ai-company")
 CURRENT_RUN   = {"running": False, "project": "", "current": "", "done": []}
 
 def _load_history() -> list:
@@ -40,7 +41,7 @@ OPENHANDS_URL = os.environ.get("OPENHANDS_URL", "http://ai-openhands:3000")
 def get_github_token() -> str:
     """يقرأ GITHUB_TOKEN من ملف .env مباشرة في كل استدعاء — لا constant ثابت
     وقت بدء التشغيل، لأن sync بيحدّث الملف بدون إعادة تشغيل الخدمة."""
-    env_file = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+    env_file = os.path.join(INSTALL_DIR, "infrastructure", ".env")
     try:
         for line in open(env_file, encoding="utf-8"):
             line = line.strip()
