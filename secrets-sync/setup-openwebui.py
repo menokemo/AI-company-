@@ -5,9 +5,27 @@ Auto-setup Open WebUI:
 2. Upload AI Company tools
 3. Configure system prompt
 """
-import json, os, sys, time, urllib.request, urllib.error
+import json, os, sys, time, urllib.request, urllib.error, socket
 
-BASE     = os.environ.get("OPENWEBUI_URL", os.environ.get("OPENWEBUI_API_URL", "http://ai-open-webui:8080"))
+# Auto-detect if running inside Docker or on host
+def get_openwebui_url():
+    # Check explicit environment variable first
+    if "OPENWEBUI_URL" in os.environ:
+        return os.environ["OPENWEBUI_URL"]
+    if "OPENWEBUI_API_URL" in os.environ:
+        return os.environ["OPENWEBUI_API_URL"]
+    
+    # Try to detect if we're inside Docker
+    try:
+        # If we can resolve ai-open-webui, we're in the docker network
+        socket.gethostbyname("ai-open-webui")
+        return "http://ai-open-webui:8080"  # Inside Docker
+    except socket.gaierror:
+        # Can't resolve docker hostname, must be on host
+        host_ip = os.environ.get("HOST_IP", "192.168.2.29")
+        return f"http://{host_ip}:8888"  # On host
+
+BASE     = get_openwebui_url()
 INSTALL_DIR = os.environ.get("INSTALL_DIR", "/opt/ai-company")
 ENV_FILE = os.path.join(INSTALL_DIR, "infrastructure", ".env")
 BASE_DIR = INSTALL_DIR
