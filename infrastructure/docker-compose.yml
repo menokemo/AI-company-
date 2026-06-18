@@ -135,22 +135,26 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      - OPENHANDS_URL=http://ai-openhands:3000
-      - CREW_URL=http://ai-crew:9002
-      - INFISICAL_API_URL=http://ai-infisical:8080
-      - ENV_FILE_PATH=/opt/ai-company/infrastructure/.env
-      - OPENWEBUI_URL=http://ai-open-webui:8080
-      - PORTAINER_URL=https://ai-portainer:9443
+      - INSTALL_DIR=${INSTALL_DIR:-/opt/ai-company}
+      - OPENHANDS_URL=${OPENHANDS_URL:-http://ai-openhands:3000}
+      - CREW_URL=${CREW_URL:-http://ai-crew:9002}
+      - LITELLM_URL=${LITELLM_URL:-http://ai-litellm:4000}
+      - INFISICAL_URL=${INFISICAL_URL:-http://ai-infisical:8080}
+      - OPENWEBUI_URL=${OPENWEBUI_URL:-http://ai-open-webui:8888}
+      - PORTAINER_URL=${PORTAINER_URL:-https://ai-portainer:9443}
+      - TOOLS_API_URL=${TOOLS_API_URL:-http://ai-tools-api:9000}
+      - HOST_IP=${HOST_IP:-localhost}
+      - ENV_FILE_PATH=${INSTALL_DIR:-/opt/ai-company}/infrastructure/.env
       - CONFIG_FILE=/app/config/models.json
       - MOCKUPS_DIR=/app/config/mockups
       - PORT=9000
     volumes:
-      - /opt/ai-company/config:/app/config
-      - /opt/ai-company/infrastructure/.env:/opt/ai-company/infrastructure/.env
-      - /opt/ai-company/infrastructure/docker-compose.yml:/opt/ai-company/infrastructure/docker-compose.yml:ro
-      - /opt/ai-company/secrets-sync:/opt/ai-company/secrets-sync:ro
-      - /opt/ai-company/tools-api/system-prompt.md:/opt/ai-company/tools-api/system-prompt.md:ro
-      - /opt/ai-company/tools-api/openwebui_tools.py:/opt/ai-company/tools-api/openwebui_tools.py:ro
+      - ${INSTALL_DIR:-/opt/ai-company}/config:/app/config
+      - ${INSTALL_DIR:-/opt/ai-company}/infrastructure/.env:${INSTALL_DIR:-/opt/ai-company}/infrastructure/.env
+      - ${INSTALL_DIR:-/opt/ai-company}/infrastructure/docker-compose.yml:${INSTALL_DIR:-/opt/ai-company}/infrastructure/docker-compose.yml:ro
+      - ${INSTALL_DIR:-/opt/ai-company}/secrets-sync:${INSTALL_DIR:-/opt/ai-company}/secrets-sync:ro
+      - ${INSTALL_DIR:-/opt/ai-company}/tools-api/system-prompt.md:${INSTALL_DIR:-/opt/ai-company}/tools-api/system-prompt.md:ro
+      - ${INSTALL_DIR:-/opt/ai-company}/tools-api/openwebui_tools.py:${INSTALL_DIR:-/opt/ai-company}/tools-api/openwebui_tools.py:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "9000:9000"
@@ -168,7 +172,7 @@ services:
     environment:
       - AGENT_SERVER_IMAGE_REPOSITORY=ghcr.io/openhands/agent-server
       - AGENT_SERVER_IMAGE_TAG=${AGENT_SERVER_IMAGE_TAG:-1.25.0-python}
-      - WORKSPACE_MOUNT_PATH=/opt/workspace
+      - WORKSPACE_MOUNT_PATH=${INSTALL_DIR:-/opt/ai-company}/data/workspace
       - SANDBOX_ENV_GITHUB_TOKEN=${GITHUB_TOKEN}
       - SANDBOX_ENV_GIT_USERNAME=${GIT_USERNAME}
       - SANDBOX_ENV_GIT_EMAIL=${GIT_USERNAME}@users.noreply.github.com
@@ -176,16 +180,16 @@ services:
       # (config.toml وحده غير كافٍ لـ V1 API، السبب في AuthenticationError)
       - LLM_MODEL=openai/claude
       - LLM_API_KEY=${LITELLM_MASTER_KEY}
-      - LLM_BASE_URL=http://${HOST_IP}:4000
+      - LLM_BASE_URL=http://${HOST_IP:-localhost}:4000
       # بعض الـ sandbox tooling (مثل "Skill"/microagent) يدوّر على اسم OPENAI_API_KEY
       # القياسي بالظبط، بمعزل عن LLM_*، فلازم تتفرّع بنفس الـ SANDBOX_ENV_ pattern
       - SANDBOX_ENV_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
-      - SANDBOX_ENV_OPENAI_API_BASE=http://${HOST_IP}:4000
-      - SANDBOX_ENV_OPENAI_BASE_URL=http://${HOST_IP}:4000
+      - SANDBOX_ENV_OPENAI_API_BASE=http://${HOST_IP:-localhost}:4000
+      - SANDBOX_ENV_OPENAI_BASE_URL=http://${HOST_IP:-localhost}:4000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/ai-company/data/openhands:/.openhands
-      - /opt/ai-company/data/workspace:/opt/workspace
+      - ${INSTALL_DIR:-/opt/ai-company}/data/openhands:/.openhands
+      - ${INSTALL_DIR:-/opt/ai-company}/data/workspace:${INSTALL_DIR:-/opt/ai-company}/data/workspace
     ports:
       - "3000:3000"
     networks:
@@ -200,15 +204,16 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      - INSTALL_DIR=${INSTALL_DIR:-/opt/ai-company}
       - PORT=9002
-      - LITELLM_BASE_URL=http://ai-litellm:4000
+      - LITELLM_BASE_URL=${LITELLM_URL:-http://ai-litellm:4000}
       - LITELLM_API_KEY=${LITELLM_MASTER_KEY}
-      - OPENHANDS_URL=http://ai-openhands:3000
+      - OPENHANDS_URL=${OPENHANDS_URL:-http://ai-openhands:3000}
       - CONFIG_FILE=/app/config/models.json
     ports:
       - "9002:9002"
     volumes:
-      - /opt/ai-company/config:/app/config
+      - ${INSTALL_DIR:-/opt/ai-company}/config:/app/config
     networks:
       - ai-company-net
     mem_limit: 2g
