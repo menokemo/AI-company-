@@ -6,7 +6,8 @@ def get_github_token() -> str:
     constant وقت بدء تشغيل الـ module، لأن 'Sync from Infisical' يكتب القيمة
     الجديدة في الملف فقط (بدون إعادة تشغيل tools-api نفسه)، فلو خزّناه هنا
     starup-time فقط، أي تحديث للتوكن بعد أول تشغيل لن يُستخدم أبداً."""
-    env_file = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+    install_dir = os.environ.get("INSTALL_DIR", "/opt/ai-company")
+    env_file = os.path.join(install_dir, "infrastructure", ".env")
     try:
         for line in open(env_file, encoding="utf-8"):
             line = line.strip()
@@ -116,7 +117,8 @@ def get_available_providers(force_refresh: bool = False) -> dict:
 
 PORT          = int(os.environ.get("PORT", "9000"))
 CONFIG_FILE   = os.environ.get("CONFIG_FILE", "/app/config/models.json")
-ENV_FILE      = os.environ.get("ENV_FILE_PATH", "/opt/ai-company/infrastructure/.env")
+INSTALL_DIR   = os.environ.get("INSTALL_DIR", "/opt/ai-company")
+ENV_FILE      = os.path.join(INSTALL_DIR, "infrastructure", ".env")
 HOST_IP       = os.environ.get("HOST_IP", "localhost")
 
 
@@ -453,8 +455,9 @@ class H(BaseHTTPRequestHandler):
                             k, _, v = line.partition("=")
                             if v: env[k.strip()] = v.strip()
                 except: pass
+                sync_script = os.path.join(INSTALL_DIR, "secrets-sync", "infisical-sync.sh")
                 r2 = subprocess.run(
-                    ["/bin/bash", "/opt/ai-company/secrets-sync/infisical-sync.sh"],
+                    ["/bin/bash", sync_script],
                     capture_output=True, text=True, timeout=120, env=env
                 )
                 out = (r2.stdout + r2.stderr).strip()
