@@ -1,3 +1,37 @@
+## [1.7.0] — 2026-06-18 — Dashboard Refactor: Sidebar + Responsive Design
+
+### جاري التطوير
+- **المرحلة الأولى: التحضير** ✅
+  - قراءة الكود الحالي وفهم البنية (895 سطر، 5 أقسام رئيسية)
+  - تحديد الـ API calls والـ dependencies
+  - Backup من الملف الأصلي
+
+- **المرحلة الثانية: HTML Layout** (في التطوير)
+  - تحويل من single page لـ sidebar + tabbed layout
+  - Fixed sidebar على اليسار (RTL)
+  - 5 tabs: Getting Started, Services, Models, History, Infisical
+
+- **المرحلة الثالثة: Responsive CSS** (قادمة)
+  - Desktop: 240px fixed sidebar
+  - Mobile (<768px): Hamburger menu يختفي الـ sidebar
+
+- **المرحلة الرابعة: JavaScript** (قادمة)
+  - Tab navigation والـ state management
+  - Hamburger toggle functionality
+
+- **المرحلة الخامسة: Integration** (قادمة)
+  - نقل كل القسم بدون تغيير الوظيفة
+  - التأكد من API calls و interactions تعمل
+
+- **المرحلة السادسة: Testing** (قادمة)
+  - Desktop وـ mobile testing
+  - Cross-browser compatibility
+
+- **المرحلة السابعة: Documentation** (قادمة)
+  - تحديث التعليقات والـ docs
+
+---
+
 ## [1.6.0] — 2026-06-17 — Audit شامل + سجل أعمال الموظفين
 
 ### إصلاحات جذرية (تفاصيل كاملة في BUGS_AND_FIXES.md)
