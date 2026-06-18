@@ -69,7 +69,7 @@ def req(method, path, data=None, token=None, retry=MAX_RETRIES):
                 return {}, 0
     return {}, 0
 
-def wait_ready(max_wait=300):
+def wait_ready(max_wait=60):
     """Wait for Open WebUI to be ready using curl"""
     import subprocess
     import time
