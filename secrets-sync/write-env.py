@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Write .env file cleanly from key=value arguments."""
 import sys
+import os
 
-env_file = "/opt/ai-company/infrastructure/.env"
+install_dir = os.environ.get("INSTALL_DIR", "/opt/ai-company")
+env_file = os.path.join(install_dir, "infrastructure", ".env")
 pairs = {}
 
 for arg in sys.argv[1:]:

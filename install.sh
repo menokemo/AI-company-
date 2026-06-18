@@ -14,7 +14,11 @@ info() { echo -e "${CYAN}[→]${NC} $*"; }
 warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 err()  { echo -e "${RED}[✗]${NC} $*"; exit 1; }
 
-ROOT_DIR=/opt/ai-company
+# Installation directory configuration
+INSTALL_DIR="${INSTALL_DIR:-/opt/ai-company}"
+export INSTALL_DIR
+
+ROOT_DIR="${INSTALL_DIR}"
 COMPOSE_FILE="$ROOT_DIR/infrastructure/docker-compose.yml"
 ENV_FILE="$ROOT_DIR/infrastructure/.env"
 

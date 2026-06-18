@@ -12,7 +12,7 @@ def main():
         sys.exit(1)
 
     secret_name = sys.argv[1]
-    api  = os.environ.get("INFISICAL_API_URL", "http://localhost:8080").rstrip("/")
+    api  = os.environ.get("INFISICAL_URL", os.environ.get("INFISICAL_API_URL", "http://ai-infisical:8080")).rstrip("/")
     cid  = os.environ["INFISICAL_CLIENT_ID"]
     csec = os.environ["INFISICAL_CLIENT_SECRET"]
     pid  = os.environ["INFISICAL_PROJECT_ID"]
