@@ -52,19 +52,21 @@ def req(method, path, data=None, token=None, retry=MAX_RETRIES):
     return {}, 0
 
 def wait_ready(max_wait=300):
-    """Wait for Open WebUI to be ready - simple and direct"""
+    """Wait for Open WebUI to be ready - use curl for reliability"""
+    import subprocess
+    
     print(f"  Waiting for Open WebUI (max {max_wait}s)...")
     
     for attempt in range(max_wait):
         try:
-            # Simple test: try to GET the home page
-            response = urllib.request.urlopen(f"{BASE}/", timeout=5)
-            if response.status == 200:
-                print("\n  [✓] Open WebUI is ready!")
-                return True
-        except urllib.error.HTTPError as e:
-            # Any response (even 400) means the server is up
-            if 200 <= e.code < 500:
+            # Use curl with short timeout
+            result = subprocess.run(
+                ["curl", "-sf", "-m", "3", f"{BASE}/"],
+                capture_output=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
                 print("\n  [✓] Open WebUI is ready!")
                 return True
         except Exception:
