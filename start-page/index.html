@@ -14,7 +14,9 @@
 body {
   background: var(--bg); color: var(--text);
   font-family: "Segoe UI","Noto Naskh Arabic",system-ui,sans-serif;
-  min-height: 100vh; padding: 0 0 60px;
+  min-height: 100vh; padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 .top-bar {
   background: var(--surface); border-bottom: 1px solid var(--border);
@@ -24,7 +26,11 @@ body {
 .logo { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
 .logo span { color: var(--accent); }
 .sync-time { font-size: 13px; color: var(--muted); }
-.wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
+.wrap { 
+  max-width: 100%;
+  padding: 32px 40px;
+  margin: 0;
+}
 h2 { font-size: 15px; color: var(--muted); font-weight: 500;
      margin-bottom: 20px; letter-spacing: .4px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
@@ -168,6 +174,7 @@ body {
   margin-right: 240px;
   margin-top: 60px;
   flex: 1;
+  padding-bottom: 60px;
 }
 
 /* Tab Content */
@@ -1094,6 +1101,10 @@ setInterval(() => {
   updateClock();
 }, 30000);
 
+// Initialize tabs on page load
+document.addEventListener('DOMContentLoaded', initializeTabs);
+window.addEventListener('load', initializeTabs);
+
 
 // ══════════════════════════════════════════════════════════════
 // Sidebar & Tab Navigation (Phase 2)
@@ -1132,25 +1143,44 @@ function switchTab(tabId) {
     closeSidebar();
   }
   
-  // Hide all tabs
-  const tabs = document.querySelectorAll('.tab-content');
-  tabs.forEach(tab => tab.classList.remove('active'));
-  
   // Remove active class from all nav items
   const navItems = document.querySelectorAll('.sidebar-nav-item');
   navItems.forEach(item => item.classList.remove('active'));
-  
-  // Show selected tab
-  const selectedTab = document.getElementById(tabId);
-  if (selectedTab) {
-    selectedTab.classList.add('active');
-  }
   
   // Mark nav item as active
   const activeNav = document.querySelector(`[data-tab="${tabId}"]`);
   if (activeNav) {
     activeNav.classList.add('active');
   }
+  
+  // Show/hide sections based on tab selection
+  // Mapping between tabs and sections
+  const tabSectionMap = {
+    'tab-getting-started': ['getting-started'],
+    'tab-services': ['services', 'creds-section', 'prompts-grid', 'prompts-msg'],
+    'tab-models': ['models-section'],
+    'tab-history': ['history-section'],
+    'tab-infisical': ['infisical-wizard']
+  };
+  
+  // Hide all sections first
+  const allSections = ['getting-started', 'services', 'creds-section', 'prompts-grid', 
+                       'prompts-msg', 'models-section', 'history-section', 'infisical-wizard'];
+  allSections.forEach(id => {
+    const elem = document.getElementById(id);
+    if (elem) {
+      elem.style.display = 'none';
+    }
+  });
+  
+  // Show sections for the selected tab
+  const sectionsToShow = tabSectionMap[tabId] || [];
+  sectionsToShow.forEach(id => {
+    const elem = document.getElementById(id);
+    if (elem) {
+      elem.style.display = 'block';
+    }
+  });
   
   // Save active tab in localStorage for persistence
   try {
