@@ -140,7 +140,7 @@ services:
       - CREW_URL=${CREW_URL:-http://ai-crew:9002}
       - LITELLM_URL=${LITELLM_URL:-http://ai-litellm:4000}
       - INFISICAL_URL=${INFISICAL_URL:-http://ai-infisical:8080}
-      - OPENWEBUI_URL=${OPENWEBUI_URL:-http://ai-open-webui:8888}
+      - OPENWEBUI_URL=http://ai-open-webui:8080
       - PORTAINER_URL=${PORTAINER_URL:-https://ai-portainer:9443}
       - TOOLS_API_URL=${TOOLS_API_URL:-http://ai-tools-api:9000}
       - HOST_IP=${HOST_IP:-localhost}
