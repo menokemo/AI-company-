@@ -155,6 +155,7 @@ services:
       - ${INSTALL_DIR:-/opt/ai-company}/secrets-sync:${INSTALL_DIR:-/opt/ai-company}/secrets-sync:ro
       - ${INSTALL_DIR:-/opt/ai-company}/tools-api/system-prompt.md:${INSTALL_DIR:-/opt/ai-company}/tools-api/system-prompt.md:ro
       - ${INSTALL_DIR:-/opt/ai-company}/tools-api/openwebui_tools.py:${INSTALL_DIR:-/opt/ai-company}/tools-api/openwebui_tools.py:ro
+      - ${INSTALL_DIR:-/opt/ai-company}/infrastructure/docker-compose.yml:${INSTALL_DIR:-/opt/ai-company}/infrastructure/docker-compose.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "9000:9000"
