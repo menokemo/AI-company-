@@ -113,8 +113,6 @@ else
 fi
 
 log "Repository ready"
-    log "Repository cloned"
-fi
 
 # ── 4. Generate / preserve secrets ───────────────────────────────────────
 info "Preparing secrets..."
