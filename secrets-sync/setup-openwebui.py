@@ -13,6 +13,11 @@ ENV_FILE = os.path.join(INSTALL_DIR, "infrastructure", ".env")
 BASE_DIR = INSTALL_DIR
 TOOL_FILE = os.path.join(BASE_DIR, "tools-api", "openwebui_tools.py")
 
+# Increased timeouts and retry configuration
+REQUEST_TIMEOUT = 60  # 60 seconds per request
+MAX_RETRIES = 5
+RETRY_DELAY = 5
+
 def get_env(key):
     try:
         for line in open(ENV_FILE):
@@ -21,27 +26,190 @@ def get_env(key):
     except: pass
     return os.environ.get(key, "")
 
-def req(method, path, data=None, token=None):
+def req(method, path, data=None, token=None, retry=MAX_RETRIES):
+    """Make HTTP request with retry logic"""
     url = BASE + path
     body = json.dumps(data).encode() if data else None
     r = urllib.request.Request(url, data=body, method=method)
     r.add_header("Content-Type", "application/json")
+    r.add_header("User-Agent", "AI-Company-Setup/1.0")
     if token: r.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(r, timeout=15) as resp:
-            return json.load(resp), resp.status
-    except urllib.error.HTTPError as e:
-        try: return json.loads(e.read().decode()), e.code
-        except: return {}, e.code
-
-def wait_ready(max_wait=180):
-    for _ in range(max_wait // 3):
+    
+    for attempt in range(retry):
         try:
-            urllib.request.urlopen(f"{BASE}/health", timeout=3)
+            with urllib.request.urlopen(r, timeout=REQUEST_TIMEOUT) as resp:
+                return json.load(resp), resp.status
+        except urllib.error.HTTPError as e:
+            try: return json.loads(e.read().decode()), e.code
+            except: return {}, e.code
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt < retry - 1:
+                print(f"    [⚠] Connection error, retrying in {RETRY_DELAY}s... (attempt {attempt+1}/{retry})")
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"    [!] Failed after {retry} attempts: {e}")
+                return {}, 0
+    return {}, 0
+
+def wait_ready(max_wait=300):
+    """Wait for Open WebUI to be ready with increased timeout"""
+    print(f"  Waiting for Open WebUI (max {max_wait}s)...")
+    for attempt in range(max_wait // 5):
+        try:
+            urllib.request.urlopen(f"{BASE}/health", timeout=10)
+            print("  [✓] Open WebUI is ready!")
             return True
-        except: pass
-        time.sleep(3)
+        except:
+            elapsed = (attempt + 1) * 5
+            remaining = max_wait - elapsed
+            print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
+            time.sleep(5)
+    print("\n  [!] Open WebUI not ready after {max_wait}s")
     return False
+
+def main():
+    if not wait_ready():
+        print("  [!] Open WebUI not ready — skipping tool setup")
+        return 1
+
+    # Admin credentials
+    admin_email    = get_env("WEBUI_ADMIN_EMAIL") or "admin@ai-company.local"
+    admin_password = get_env("WEBUI_ADMIN_PASSWORD") or get_env("WEBUI_SECRET_KEY")[:16]
+    admin_name     = "Admin"
+
+    # Try signup (works on fresh install)
+    print("  Creating admin account...")
+    data, status = req("POST", "/api/v1/auths/signup", {
+        "name": admin_name,
+        "email": admin_email,
+        "password": admin_password,
+    })
+
+    # Get token via signin
+    print("  Signing in...")
+    data, status = req("POST", "/api/v1/auths/signin", {
+        "email": admin_email,
+        "password": admin_password,
+    })
+
+    if status not in (200, 201) or "token" not in data:
+        print(f"  [!] Sign-in failed ({status}) — tool upload skipped")
+        print(f"      Create account manually at http://localhost:8888")
+        return 1
+
+    token = data["token"]
+    print(f"  Signed in as {admin_email}")
+
+    # Check if tool already exists
+    tools_data, _ = req("GET", "/api/v1/tools/", token=token)
+    existing = [t for t in (tools_data if isinstance(tools_data, list) else [])
+                if t.get("name") == "AI Company Tools"]
+
+    try:
+        tool_content = open(TOOL_FILE, encoding="utf-8").read()
+    except:
+        print(f"  [!] Tool file not found: {TOOL_FILE}")
+        tool_content = None
+
+    if tool_content:
+        tool_payload = {
+            "id":          "ai_company_tools",
+            "name":        "AI Company Tools",
+            "content":     tool_content,
+            "meta":        {"description": "Generate mockups and create projects"},
+        }
+        if existing:
+            print("  Updating AI Company Tools...")
+            data, status = req("POST", "/api/v1/tools/id/ai_company_tools/update", tool_payload, token=token)
+            if status in (200, 201):
+                print("  [✓] Tool updated successfully!")
+            else:
+                print(f"  [!] Tool update failed ({status})")
+        else:
+            print("  Uploading AI Company Tools...")
+            data, status = req("POST", "/api/v1/tools/create", tool_payload, token=token)
+            if status in (200, 201):
+                print("  [✓] Tool uploaded successfully!")
+            else:
+                print(f"  [!] Tool upload failed ({status})")
+
+    # Create Project Manager model
+    print("  Creating Project Manager model...")
+    try:
+        sys_prompt = open(os.path.join(BASE_DIR, "tools-api", "system-prompt.md"),
+                          encoding="utf-8").read()
+    except:
+        sys_prompt = "You are an AI Project Manager. Help clients build software applications."
+
+    PROVIDER_TO_ALIAS = {
+        "anthropic": "claude",
+        "openai":    "gpt",
+        "openrouter":"openrouter-auto",
+    }
+    try:
+        import json as _json
+        models_path = os.environ.get("CONFIG_FILE", "/app/config/models.json")
+        models_cfg = _json.loads(open(models_path).read())
+        raw_model = models_cfg.get("manager", "")
+        provider = raw_model.split("/", 1)[0] if "/" in raw_model else raw_model
+        base_model = PROVIDER_TO_ALIAS.get(provider, raw_model)
+    except Exception as e:
+        print(f"  [!] Could not read models config: {e}")
+        base_model = ""
+
+    if not base_model:
+        print("  [!] No model configured — set it in Dashboard → Models first")
+        return 0
+
+    model_payload = {
+        "id": "ai_company_project_manager",
+        "name": "🤖 مدير المشروع — AI Company",
+        "base_model_id": base_model,
+        "meta": {
+            "description": "مدير مشاريع ذكاء اصطناعي",
+            "capabilities": {"tools": True},
+            "toolIds": ["ai_company_tools"]
+        },
+        "params": {
+            "system": sys_prompt,
+            "temperature": 0.7
+        },
+        "access_grants": [],
+        "is_active": True
+    }
+
+    # Check if model exists
+    existing_models, _ = req("GET", "/api/v1/models", token=token)
+    models_list = existing_models.get("data", []) if isinstance(existing_models, dict) else (existing_models if isinstance(existing_models, list) else [])
+    model_exists = any(m.get("id") == "ai_company_project_manager" for m in models_list)
+
+    if model_exists:
+        print("  Updating Project Manager model...")
+        model_data, model_status = req("POST", "/api/v1/models/model/update?id=ai_company_project_manager",
+                                        model_payload, token=token)
+        if model_status in (200, 201):
+            print("  [✓] Project Manager model updated!")
+        else:
+            print(f"  [!] Model update failed ({model_status})")
+    else:
+        print("  Creating Project Manager model...")
+        model_data, model_status = req("POST", "/api/v1/models/create", model_payload, token=token)
+        if model_status in (200, 201):
+            print("  [✓] Project Manager model created!")
+        else:
+            print(f"  [!] Model creation failed ({model_status})")
+
+    # Save credentials to .env
+    for k, v in [("WEBUI_ADMIN_EMAIL", admin_email),
+                 ("WEBUI_ADMIN_PASSWORD", admin_password)]:
+        cur = get_env(k)
+        if not cur:
+            with open(ENV_FILE, "a") as f:
+                f.write(f"\n{k}={v}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
 
 def main():
     print("  Waiting for Open WebUI...")
