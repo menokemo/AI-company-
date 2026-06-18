@@ -477,10 +477,16 @@ class H(BaseHTTPRequestHandler):
                             k, _, v = line.partition("=")
                             if v: env[k.strip()] = v.strip()
                 except: pass
+                script_path = os.path.join(
+                    os.path.dirname(ENV_FILE).replace("infrastructure", "secrets-sync"),
+                    "setup-openwebui.py"
+                )
+                # استدعاء مباشر بدون "bash -c" — الالتفاف عبر shell إضافي يمكن
+                # أن يمنع subprocess.run's timeout من قتل العملية الحقيقية
+                # بشكل موثوق (يُنهي bash نفسه لكن قد يترك python3 يتيمًا).
                 r2 = subprocess.run(
-                    ["/bin/bash", "-c",
-                     f"python3 {os.path.dirname(ENV_FILE).replace('infrastructure','secrets-sync')}/setup-openwebui.py"],
-                    capture_output=True, text=True, timeout=600, env=env
+                    ["python3", script_path],
+                    capture_output=True, text=True, timeout=90, env=env
                 )
                 out = (r2.stdout + r2.stderr).strip()
                 self.json({"success": "Project Manager" in out or r2.returncode == 0, "output": out[-500:]})
