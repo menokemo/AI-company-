@@ -7,7 +7,7 @@ Auto-setup Open WebUI:
 """
 import json, os, sys, time, urllib.request, urllib.error
 
-BASE     = os.environ.get("OPENWEBUI_URL", os.environ.get("OPENWEBUI_API_URL", "http://ai-open-webui:8888"))
+BASE     = os.environ.get("OPENWEBUI_URL", os.environ.get("OPENWEBUI_API_URL", "http://ai-open-webui:8080"))
 INSTALL_DIR = os.environ.get("INSTALL_DIR", "/opt/ai-company")
 ENV_FILE = os.path.join(INSTALL_DIR, "infrastructure", ".env")
 BASE_DIR = INSTALL_DIR
