@@ -56,10 +56,20 @@ def wait_ready(max_wait=300):
     print(f"  Waiting for Open WebUI (max {max_wait}s)...")
     for attempt in range(max_wait // 5):
         try:
-            urllib.request.urlopen(f"{BASE}/health", timeout=10)
+            # Try the actual API endpoint instead of /health (which doesn't exist)
+            req_obj = urllib.request.Request(f"{BASE}/api/v1/auths/signin", 
+                                           data=json.dumps({"email":"test","password":"test"}).encode(),
+                                           method="POST")
+            req_obj.add_header("Content-Type", "application/json")
+            urllib.request.urlopen(req_obj, timeout=10)
             print("  [✓] Open WebUI is ready!")
             return True
-        except:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            # We expect a 401/422 error (wrong credentials) - that means it's responding
+            if isinstance(e, urllib.error.HTTPError) and e.code in (400, 401, 422):
+                print("  [✓] Open WebUI is ready!")
+                return True
+            # Keep waiting for other errors
             elapsed = (attempt + 1) * 5
             remaining = max_wait - elapsed
             print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
