@@ -52,29 +52,47 @@ def req(method, path, data=None, token=None, retry=MAX_RETRIES):
     return {}, 0
 
 def wait_ready(max_wait=300):
-    """Wait for Open WebUI to be ready with increased timeout"""
+    """Wait for Open WebUI to be ready"""
     print(f"  Waiting for Open WebUI (max {max_wait}s)...")
     for attempt in range(max_wait // 5):
         try:
-            # Try the actual API endpoint instead of /health (which doesn't exist)
-            req_obj = urllib.request.Request(f"{BASE}/api/v1/auths/signin", 
-                                           data=json.dumps({"email":"test","password":"test"}).encode(),
-                                           method="POST")
+            # Try to connect to the API
+            req_obj = urllib.request.Request(
+                f"{BASE}/api/v1/auths/signin", 
+                data=json.dumps({"email":"test","password":"test"}).encode(),
+                method="POST"
+            )
             req_obj.add_header("Content-Type", "application/json")
-            urllib.request.urlopen(req_obj, timeout=10)
-            print("  [✓] Open WebUI is ready!")
-            return True
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
-            # We expect a 401/422 error (wrong credentials) - that means it's responding
-            if isinstance(e, urllib.error.HTTPError) and e.code in (400, 401, 422):
+            
+            try:
+                response = urllib.request.urlopen(req_obj, timeout=10)
+                # If we get here, the API is responding (any 2xx response)
                 print("  [✓] Open WebUI is ready!")
                 return True
-            # Keep waiting for other errors
+            except urllib.error.HTTPError as e:
+                # We expect 400/401/422 errors (wrong credentials) - that means it's responding!
+                if e.code in (400, 401, 422):
+                    print("  [✓] Open WebUI is ready!")
+                    return True
+                # For other HTTP errors, keep waiting
+                raise e
+                
+        except (urllib.error.URLError, TimeoutError, OSError):
+            # Connection not ready yet, keep waiting
             elapsed = (attempt + 1) * 5
             remaining = max_wait - elapsed
-            print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
+            if remaining > 0:
+                print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
             time.sleep(5)
-    print("\n  [!] Open WebUI not ready after {max_wait}s")
+        except Exception as e:
+            # For any other error, keep waiting
+            elapsed = (attempt + 1) * 5
+            remaining = max_wait - elapsed
+            if remaining > 0:
+                print(f"    [{elapsed}s/{max_wait}s] Still waiting ({remaining}s remaining)...", end="\r")
+            time.sleep(5)
+    
+    print(f"\n  [!] Open WebUI not ready after {max_wait}s")
     return False
 
 def main():
