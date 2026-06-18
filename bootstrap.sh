@@ -9,7 +9,9 @@
 set -euo pipefail
 
 REPO_URL_HOST="github.com/menokemo/AI-company-.git"
-TARGET="/opt/ai-company"
+INSTALL_DIR="${INSTALL_DIR:-/opt/ai-company}"
+export INSTALL_DIR
+TARGET="${INSTALL_DIR}"
 
 err() { printf "\033[1;31m[x]\033[0m %s\n" "$*" >&2; }
 log() { printf "\033[1;32m[+]\033[0m %s\n" "$*"; }
