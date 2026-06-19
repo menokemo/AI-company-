@@ -188,7 +188,12 @@ def main():
         models_cfg = _json.loads(open(models_path).read())
         raw_model = models_cfg.get("manager", "")
         provider = raw_model.split("/", 1)[0] if "/" in raw_model else raw_model
-        base_model = PROVIDER_TO_ALIAS.get(provider, raw_model)
+        if provider == "openrouter":
+            # litellm-config.yaml فيه wildcard "openrouter/*" — نمرّر السلسلة
+            # الكاملة كما هي عشان يستخدم الموديل المحدّد فعليًا، لا alias عام
+            base_model = raw_model
+        else:
+            base_model = PROVIDER_TO_ALIAS.get(provider, raw_model)
     except Exception as e:
         print(f"  [!] Could not read models config: {e}")
         base_model = ""
