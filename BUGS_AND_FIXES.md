@@ -44,6 +44,9 @@
 1. `litellm-config.yaml`: استبدال alias الثابت بـ **wildcard routing** (`model_name: openrouter/*`) — ميزة رسمية في LiteLLM تمرّر أي موديل OpenRouter حقيقي مباشرة بدون الحاجة لتعريفه مسبقًا
 2. `setup-openwebui.py`, `tools-api/server.py`, `crew-service/crew.py`: عند provider=`openrouter`، تمرير السلسلة الكاملة (`openrouter/deepseek/deepseek-v3.2`) بدل الـ alias العام، لتطابق الـ wildcard الجديد
 
+### إصلاح إضافي مكتشف بعد التطبيق
+بعد تطبيق الـ wildcard، ظهر خطأ جديد: "There was an issue with the message format" — بدون أي طلب وصل لـ LiteLLM في اللوج أصلاً (يعني الرفض حصل من جوّه Open WebUI نفسها قبل إرسال الطلب). السبب: `/v1/models` كان يرجّع `"openrouter/*"` كاسم وحيد حرفي (مش قائمة موديلات حقيقية مُفصَّلة)، فـ Open WebUI رفض أي طلب لموديل غير موجود حرفيًا في هذه القائمة. أُضيف `check_provider_endpoint: true` لـ `litellm_settings` — يجعل LiteLLM يستعلم عن قائمة OpenRouter الحقيقية (300+ موديل) ويعرضها بالكامل في `/v1/models`.
+
 ### الدرس المستفاد
 أي "alias عام واحد لكل المزوّد" بيفترض إن كل خيارات المستخدم تحت هذا المزوّد متطابقة وظيفيًا — افتراض خاطئ لمزوّدين بهم عشرات/مئات الموديلات (كـ OpenRouter). الحل الصحيح: تمرير الاختيار الحقيقي حتى النهاية، لا تبسيطه.
 
