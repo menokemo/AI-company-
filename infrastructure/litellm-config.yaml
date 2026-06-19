@@ -28,3 +28,6 @@ general_settings:
 litellm_settings:
   drop_params: true
   request_timeout: 600
+  check_provider_endpoint: true  # يجعل /v1/models يُفصِّل موديلات OpenRouter
+                                  # الحقيقية تحت الـ wildcard (لا "openrouter/*"
+                                  # فقط) — Open WebUI يرفض موديلات غير مُدرجة
