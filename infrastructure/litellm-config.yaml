@@ -13,10 +13,13 @@ model_list:
       model: openai/gpt-4o
       api_key: os.environ/OPENAI_API_KEY
 
-  # ===== OpenRouter =====
-  - model_name: openrouter-auto
+  # ===== OpenRouter (wildcard) =====
+  # بدل alias ثابت واحد ("openrouter/auto" يتجاهل اختيار المستخدم الفعلي
+  # ويُسلّم الاختيار لـ OpenRouter نفسه) — الـ wildcard يسمح بتمرير أي موديل
+  # OpenRouter حقيقي بالاسم الكامل مباشرة (مثل openrouter/deepseek/deepseek-v3.2)
+  - model_name: openrouter/*
     litellm_params:
-      model: openrouter/auto
+      model: openrouter/*
       api_key: os.environ/OPENROUTER_API_KEY
 
 general_settings:
