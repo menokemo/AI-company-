@@ -255,7 +255,7 @@ def generate_design_options(project: dict) -> dict:
                 try:
                     resp = litellm.completion(
                         model=model_str, messages=msgs,
-                        max_tokens=4096, temperature=0.7,
+                        max_tokens=8000, temperature=0.7,
                     )
                     return resp.choices[0].message.content
                 except litellm.RateLimitError as _e:
@@ -270,7 +270,7 @@ def generate_design_options(project: dict) -> dict:
             lkey = os.environ.get("LITELLM_API_KEY", "")
             r = _r.post(lurl + "/v1/chat/completions",
                 headers={"Authorization": "Bearer " + lkey, "Content-Type": "application/json"},
-                json={"model": model_str, "messages": msgs, "max_tokens": 4096},
+                json={"model": model_str, "messages": msgs, "max_tokens": 8000},
                 timeout=120)
             r.raise_for_status()
             return r.json()["choices"][0]["message"]["content"]
@@ -288,19 +288,28 @@ STYLE: """ + style_name + """ (accent: """ + accent + """, background: """ + bg 
 Create a complete single-file HTML prototype with:
 
 1. TAILWIND CSS from CDN (https://cdn.tailwindcss.com)
-2. MULTIPLE SCREENS (4-5 screens): dashboard, detail view, form, list, settings
-3. SIDEBAR NAVIGATION with icons (use unicode or inline SVG)
-4. CLICK NAVIGATION between screens (JavaScript showScreen function)
-5. REALISTIC CONTENT with actual data relevant to the project
-6. DESIGN SYSTEM: consistent colors, typography, spacing throughout
+2. ⚠️ MANDATORY: AT LEAST 4 FULLY-BUILT DISTINCT SCREENS/PAGES relevant to this
+   specific project (e.g. for an e-commerce site: Home/Catalog, Product Detail,
+   Cart/Checkout, Account or Orders — pick whatever 4+ screens actually fit
+   THIS project's domain). A prototype with only 1 screen is a FAILED response
+   — do not stop after the first screen, keep building until all 4+ exist.
+3. SIDEBAR or TOP NAVIGATION with icons (use unicode or inline SVG) linking to
+   every single screen
+4. CLICK NAVIGATION between ALL screens (JavaScript showScreen function) —
+   every nav link must actually switch to a different, fully-built screen
+5. REALISTIC CONTENT on EVERY screen — real-looking sample data relevant to
+   the project (real-sounding names, prices, descriptions — never lorem ipsum,
+   never placeholder boxes, never "Screen 2 coming soon")
+6. DESIGN SYSTEM: consistent colors, typography, spacing across all screens
 7. COMPONENTS: cards, tables, charts (CSS only), badges, buttons, modals
 8. DARK/LIGHT theme based on style
 
 STRUCTURE:
 - Header with logo + user avatar
-- Sidebar with navigation items (each links to a screen)
-- Main content area (changes per screen)
-- Each screen has realistic data and interactions
+- Navigation with an item for EACH of the 4+ screens
+- Main content area (swaps per screen via JS, all screens pre-built in the HTML)
+- Each screen fully fleshed out with realistic data and interactions — no
+  screen may be a stub, placeholder, or "under construction" notice
 
 REQUIREMENTS:
 - Mobile responsive
@@ -309,6 +318,10 @@ REQUIREMENTS:
 - Loading states where appropriate
 - Empty states for lists
 - Form validation visual feedback
+
+Before returning, verify: did you build 4 or more COMPLETE, DIFFERENT screens
+with real content, all reachable by clicking the navigation? If not, you are
+not finished — continue building the remaining screens.
 
 Return ONLY the complete HTML file. No explanations."""
         try:
