@@ -195,6 +195,10 @@ def get_coder_model():
         models_cfg = json.loads(open(CONFIG_FILE, encoding="utf-8").read())
         raw_model = models_cfg.get("coder", "")
         provider = raw_model.split("/", 1)[0] if "/" in raw_model else raw_model
+        if provider == "openrouter":
+            # litellm-config.yaml فيه wildcard "openrouter/*" — تمرير السلسلة
+            # الكاملة يستخدم الموديل المحدّد فعليًا، لا alias عام يفقد الاختيار
+            return f"openai/{raw_model}"
         alias = PROVIDER_TO_ALIAS.get(provider, "claude")
         return f"openai/{alias}"
     except Exception:
