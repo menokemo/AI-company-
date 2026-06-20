@@ -1,3 +1,13 @@
+## [1.7.0] — 2026-06-20 — 🎯 الإصلاح الجذري: OpenHands يكتب كود حقيقي الآن مع أي موديل
+
+### إصلاح حرج (تفاصيل كاملة في BUGS_AND_FIXES.md)
+- اكتُشف السبب الحقيقي لفشل OpenHands مع *كل* المحادثات المرتبطة بـ repository (بصرف النظر عن الموديل): خطوة ربط GitHub في `infisical-sync.sh` لم تكن تُنفَّذ إطلاقاً بسبب شرط يعتمد على متغيّر بيئة غير محفوظ (`GIT_USERNAME`)
+- النتيجة: `provider_tokens` فاضية دائماً في OpenHands → `AssertionError` داخلي لكل مشروع
+- **مؤكَّد بعد الإصلاح:** كومتات حقيقية فعلية (`feat: complete task`) لا "Initial commit" فقط
+- تحديث `agent-server` للنسخة الأحدث المتاحة (`1.27.0-python`)
+
+---
+
 ## [1.7.0] — 2026-06-18 — Dashboard Refactor: Sidebar + Responsive Design
 
 ### ✅ اكتملت
