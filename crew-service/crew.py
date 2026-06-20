@@ -288,11 +288,15 @@ STYLE: """ + style_name + """ (accent: """ + accent + """, background: """ + bg 
 Create a complete single-file HTML prototype with:
 
 1. TAILWIND CSS from CDN (https://cdn.tailwindcss.com)
-2. ⚠️ MANDATORY: AT LEAST 4 FULLY-BUILT DISTINCT SCREENS/PAGES relevant to this
-   specific project (e.g. for an e-commerce site: Home/Catalog, Product Detail,
-   Cart/Checkout, Account or Orders — pick whatever 4+ screens actually fit
-   THIS project's domain). A prototype with only 1 screen is a FAILED response
-   — do not stop after the first screen, keep building until all 4+ exist.
+2. ⚠️ MANDATORY: Build ONE fully-built, distinct screen for EVERY single item
+   listed in REQUIREMENTS above — not a subset, not just the first one or two.
+   Read the REQUIREMENTS list carefully and count the items: that is exactly
+   how many screens you must build (minimum 4 — if REQUIREMENTS lists fewer
+   than 4 items, add complementary screens that fit this project's domain
+   until you reach at least 4 total). A prototype that skips or merges any
+   listed requirement into a single page, or stops after the first screen,
+   is a FAILED response — keep building until every requirement has its own
+   fully-realized screen.
 3. SIDEBAR or TOP NAVIGATION with icons (use unicode or inline SVG) linking to
    every single screen
 4. CLICK NAVIGATION between ALL screens (JavaScript showScreen function) —
