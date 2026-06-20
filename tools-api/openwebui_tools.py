@@ -27,7 +27,16 @@ class Tools:
         Returns 3 clickable links to preview the mockups.
 
         :param name: Project name (short, English, no spaces)
-        :param description: Brief project description
+        :param description: A SPECIFIC, detailed description of the exact
+            business/domain (what is sold or done, who the customers are,
+            what makes it distinct) — not a generic one-liner. The designer
+            uses ONLY this text to decide what realistic content to put in
+            the mockups, so vague descriptions produce generic, irrelevant
+            designs. Write 2-4 sentences capturing the real business context
+            discussed with the client (e.g. instead of "an online store",
+            write "an eyewear store selling prescription glasses and
+            sunglasses, browsing by frame style/brand, no online payment —
+            customers order via a WhatsApp button on each product").
         :param requirements: Comma-separated list of key screens/features
         :return: Formatted message with 3 mockup links
         """
