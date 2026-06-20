@@ -76,17 +76,48 @@ else
 fi
 
 # ── ربط GitHub بـ OpenHands ──────────────────────────────────────────────────
+# 🎯 السبب الجذري لكل حالات فشل OpenHands (بصرف النظر عن الموديل) كان هنا:
+# الشرط [ -n "$GIT_USERNAME" ] كان يفشل دائماً لأن GIT_USERNAME غير محفوظ في
+# .env (فقط GITHUB_TOKEN موجود)، فخطوة ربط GitHub بالكامل كانت تتخطّى تماماً
+# منذ بداية وجودها — ما يجعل provider_tokens فاضياً دوماً في OpenHands،
+# فيفشل AssertionError داخلياً في كل محادثة فيها repository (بصرف النظر عن
+# الموديل). الحل: جلب الـ username الحقيقي ديناميكياً من GitHub API نفسه
+# (GET /user) — لا حاجة لـ GIT_USERNAME من .env أصلاً.
 GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
-GIT_USERNAME=$(grep "^GIT_USERNAME=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
 
-if [ -n "$GITHUB_TOKEN" ] && [ -n "$GIT_USERNAME" ]; then
+if [ -n "$GITHUB_TOKEN" ]; then
     log "ربط GitHub بـ OpenHands..."
     sleep 5
-    resp=$(curl -sf -X POST "$OH_HOST/api/v1/secrets/git-providers" \
-        -H "Content-Type: application/json" \
-        -d "{\"provider_tokens\":{\"github\":{\"token\":\"$GITHUB_TOKEN\",\"user_id\":\"$GIT_USERNAME\",\"host\":\"github.com\"}}}" \
-        2>/dev/null || echo "")
-    echo "$resp" | grep -q "stored" && log "✓ GitHub متصل بـ OpenHands" || true
+    python3 - "$OH_HOST" "$GITHUB_TOKEN" << 'GHLINK'
+import sys, json, urllib.request
+oh_host, gh_token = sys.argv[1], sys.argv[2]
+try:
+    req = urllib.request.Request("https://api.github.com/user", method="GET")
+    req.add_header("Authorization", f"Bearer {gh_token}")
+    resp = urllib.request.urlopen(req, timeout=10)
+    username = json.load(resp)["login"]
+except Exception as e:
+    print(f"[!] فشل جلب اسم المستخدم من GitHub: {e}")
+    sys.exit(0)
+
+payload = {
+    "provider_tokens": {
+        "github": {"token": gh_token, "user_id": username, "host": "github.com"}
+    }
+}
+try:
+    req2 = urllib.request.Request(
+        f"{oh_host}/api/v1/secrets/git-providers",
+        data=json.dumps(payload).encode(),
+        method="POST",
+    )
+    req2.add_header("Content-Type", "application/json")
+    r = urllib.request.urlopen(req2, timeout=15)
+    body = r.read().decode()
+    print(f"[+] ✓ GitHub ({username}) متصل بـ OpenHands بنجاح" if "stored" in body else f"[!] رد غير متوقع: {body}")
+except Exception as e:
+    print(f"[!] فشل ربط GitHub بـ OpenHands: {e}")
+GHLINK
 fi
 
 # ── ضبط LLM الخاص بـ OpenHands (Settings API) تلقائيًا ──────────────────────────
