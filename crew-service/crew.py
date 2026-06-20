@@ -239,10 +239,23 @@ def generate_design_options(project: dict) -> dict:
     except: cfg = {}
     model = cfg.get("designer", "claude")
 
+    # كل ستايل له وصف بصري حقيقي مختلف (تخطيط، طباعة، إحساس)، لا فرق
+    # ألوان فقط — وإلا تطلع 3 تصاميم متطابقة بصبغات مختلفة بس
     styles = [
-        ("modern",       "Modern & Minimal",   "#6366f1", "#f8fafc"),
-        ("vibrant",      "Vibrant & Bold",     "#f59e0b", "#0f172a"),
-        ("professional", "Professional SaaS",  "#0ea5e9", "#ffffff"),
+        ("modern", "Modern & Minimal", "#6366f1", "#f8fafc",
+         "Generous whitespace, light/thin typography weights, subtle 1px "
+         "borders instead of heavy shadows, a clean simple grid, understated "
+         "line-icons, calm and airy — think Apple/Linear/Notion aesthetic."),
+        ("vibrant", "Vibrant & Bold", "#f59e0b", "#0f172a",
+         "Large bold/heavy typography, strong color blocks or gradients, "
+         "playful rounded or asymmetric shapes, oversized CTAs, energetic "
+         "visual rhythm with bold imagery — think a confident consumer "
+         "brand/startup landing page, not a corporate tool."),
+        ("professional", "Professional SaaS", "#0ea5e9", "#ffffff",
+         "Structured sidebar navigation, dense information hierarchy "
+         "(tables, stat cards, data visualizations), consistent enterprise "
+         "grid system, medium-weight neutral typography — think a B2B "
+         "dashboard like Stripe/Linear admin panels."),
     ]
 
     def call_llm(model_str, prompt_text):
@@ -277,13 +290,17 @@ def generate_design_options(project: dict) -> dict:
 
 
     mockups = []
-    for i, (style_key, style_name, accent, bg) in enumerate(styles, 1):
+    for i, (style_key, style_name, accent, bg, style_desc) in enumerate(styles, 1):
         prompt = """You are a world-class UI/UX designer creating a Figma-quality prototype.
 
 PROJECT: """ + name + """
 DESCRIPTION: """ + description + """
 REQUIREMENTS: """ + requirements + """
 STYLE: """ + style_name + """ (accent: """ + accent + """, background: """ + bg + """)
+VISUAL APPROACH FOR THIS STYLE: """ + style_desc + """ — this must be CLEARLY
+visible in the actual layout and typography, not just the color palette.
+If someone saw this prototype without knowing the style name, the visual
+approach described above should still be obvious.
 
 ⚠️ READ THE DESCRIPTION ABOVE CAREFULLY — it defines the actual business
 domain of this project. EVERY piece of content you write (sample product
