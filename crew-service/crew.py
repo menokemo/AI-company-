@@ -285,6 +285,19 @@ DESCRIPTION: """ + description + """
 REQUIREMENTS: """ + requirements + """
 STYLE: """ + style_name + """ (accent: """ + accent + """, background: """ + bg + """)
 
+⚠️ READ THE DESCRIPTION ABOVE CAREFULLY — it defines the actual business
+domain of this project. EVERY piece of content you write (sample product
+names, categories, prices, copy, icons, imagery references, terminology)
+MUST be specific and authentic to THAT exact business, not a generic
+SaaS/dashboard/e-commerce template with the project name swapped in. For
+example, if DESCRIPTION says this is an eyewear/glasses store, every product
+shown must be a real-sounding pair of glasses/sunglasses (brand-style names,
+realistic prices, lens/frame descriptions) — never generic "Product 1",
+never unrelated categories, never content that could just as easily belong
+to a totally different kind of business. If two prototypes for two different
+projects could have their content swapped without anyone noticing, you have
+failed this task.
+
 Create a complete single-file HTML prototype with:
 
 1. TAILWIND CSS from CDN (https://cdn.tailwindcss.com)
