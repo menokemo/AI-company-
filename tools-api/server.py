@@ -182,6 +182,45 @@ def create_repo(name, description=""):
         return {"error": f"GitHub error {e.code}: {err.get('message','')}"}
 
 
+def check_project_status(name):
+    """يتحقق من حالة مشروع حقيقية عبر GitHub مباشرة (المصدر الحقيقي للحقيقة)
+    — كومتات حقيقية + Pull Requests، بدل الاعتماد على ذاكرة الموديل لمحادثة
+    OpenHands القديمة التي ليس لديه أي وسيلة لمتابعتها."""
+    GITHUB_TOKEN = get_github_token()
+    if not GITHUB_TOKEN: return {"error": "GITHUB_TOKEN غير مضبوط"}
+    safe = re.sub(r"[^a-zA-Z0-9\-]", "-", name.lower()).strip("-")
+    user = get_username()
+    full_name = f"{user}/{safe}"
+
+    def gh(path):
+        req = urllib.request.Request(f"https://api.github.com/repos/{full_name}{path}")
+        req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
+        req.add_header("Accept", "application/vnd.github+json")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.load(r)
+
+    try:
+        commits = gh("/commits?per_page=10")
+    except urllib.error.HTTPError as e:
+        return {"error": f"المشروع '{full_name}' غير موجود أو لم يتم إنشاؤه بعد ({e.code})"}
+
+    only_initial = len(commits) <= 1
+    try:
+        prs = gh("/pulls?state=open")
+    except Exception:
+        prs = []
+
+    return {
+        "success": True,
+        "full_name": full_name,
+        "repo_url": f"https://github.com/{full_name}",
+        "still_initializing": only_initial,
+        "commit_count": len(commits),
+        "recent_commits": [c["commit"]["message"] for c in commits[:5]],
+        "open_pull_requests": [{"title": p["title"], "url": p["html_url"]} for p in prs],
+    }
+
+
 PROVIDER_TO_ALIAS = {
     "anthropic":  "claude",
     "openai":     "gpt",
@@ -544,6 +583,8 @@ class H(BaseHTTPRequestHandler):
             if not r.get("success"): self.json(r); return
             c = start_coding(r.get("full_name",""), b.get("task",""), b.get("description",""), b.get("document_content",""))
             self.json({**r, "coding": c})
+        elif self.path == "/project-status":
+            self.json(check_project_status(b.get("name","")))
         else:
             self.json({"error":"not found"}, 404)
 
