@@ -231,6 +231,7 @@ def generate_design_options(project: dict) -> dict:
     name         = project.get("name", "project")
     description  = project.get("description", "")
     requirements = project.get("requirements", "")
+    custom_accent = project.get("accent_color", "").strip()  # مثال: "#16a34a" — لو العميل حدّد لون
     LITELLM_URL  = os.environ.get("LITELLM_BASE_URL", "http://ai-litellm:4000")
     LITELLM_KEY  = os.environ.get("LITELLM_API_KEY", "")
     try:
@@ -241,17 +242,23 @@ def generate_design_options(project: dict) -> dict:
 
     # كل ستايل له وصف بصري حقيقي مختلف (تخطيط، طباعة، إحساس)، لا فرق
     # ألوان فقط — وإلا تطلع 3 تصاميم متطابقة بصبغات مختلفة بس
+    _default_accents = {"modern": "#6366f1", "vibrant": "#f59e0b", "professional": "#0ea5e9"}
+    if custom_accent:
+        # لو العميل حدّد لون، نستخدمه كـ accent موحّد للـ 3 الأنماط (الفرق
+        # الحقيقي بينهم يبقى في التخطيط/الطباعة، لا الألوان، زي ما اتفقنا)
+        _default_accents = {k: custom_accent for k in _default_accents}
+
     styles = [
-        ("modern", "Modern & Minimal", "#6366f1", "#f8fafc",
+        ("modern", "Modern & Minimal", _default_accents["modern"], "#f8fafc",
          "Generous whitespace, light/thin typography weights, subtle 1px "
          "borders instead of heavy shadows, a clean simple grid, understated "
          "line-icons, calm and airy — think Apple/Linear/Notion aesthetic."),
-        ("vibrant", "Vibrant & Bold", "#f59e0b", "#0f172a",
+        ("vibrant", "Vibrant & Bold", _default_accents["vibrant"], "#0f172a",
          "Large bold/heavy typography, strong color blocks or gradients, "
          "playful rounded or asymmetric shapes, oversized CTAs, energetic "
          "visual rhythm with bold imagery — think a confident consumer "
          "brand/startup landing page, not a corporate tool."),
-        ("professional", "Professional SaaS", "#0ea5e9", "#ffffff",
+        ("professional", "Professional SaaS", _default_accents["professional"], "#ffffff",
          "Structured sidebar navigation, dense information hierarchy "
          "(tables, stat cards, data visualizations), consistent enterprise "
          "grid system, medium-weight neutral typography — think a B2B "
@@ -268,7 +275,7 @@ def generate_design_options(project: dict) -> dict:
                 try:
                     resp = litellm.completion(
                         model=model_str, messages=msgs,
-                        max_tokens=8000, temperature=0.7,
+                        max_tokens=16000, temperature=0.7,
                     )
                     return resp.choices[0].message.content
                 except litellm.RateLimitError as _e:
@@ -283,7 +290,7 @@ def generate_design_options(project: dict) -> dict:
             lkey = os.environ.get("LITELLM_API_KEY", "")
             r = _r.post(lurl + "/v1/chat/completions",
                 headers={"Authorization": "Bearer " + lkey, "Content-Type": "application/json"},
-                json={"model": model_str, "messages": msgs, "max_tokens": 8000},
+                json={"model": model_str, "messages": msgs, "max_tokens": 16000},
                 timeout=120)
             r.raise_for_status()
             return r.json()["choices"][0]["message"]["content"]
