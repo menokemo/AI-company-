@@ -122,5 +122,44 @@ except Exception as e:
 OHCFG
 fi
 
+# ── ضبط git_user_name / git_user_email تلقائيًا (يُجلب ديناميكيًا من GitHub) ───
+# مشكلة حقيقية مكتشَفة: OpenHands يحاول جلب بريد المستخدم عبر GitHub API
+# (/user/emails) لتحديد committer email — هذا الـ endpoint غير مدعوم مع
+# Fine-grained Personal Access Tokens، فيفشل بصمت ويُسقط *كل* محادثة فيها
+# repository مرتبط (status يتحول لـ ERROR فورياً، بصرف النظر عن الموديل
+# المُستخدَم تماماً). الحل: تزويد git_user_name/email مباشرة في الإعدادات
+# حتى لا يحتاج OpenHands لاستدعاء /user/emails أصلاً.
+if [ -n "$GITHUB_TOKEN" ]; then
+    log "ضبط git_user_name/email لـ OpenHands (من GitHub API مباشرة)..."
+    python3 - "$OH_HOST" "$GITHUB_TOKEN" << 'GITCFG'
+import sys, json, urllib.request
+oh_host, gh_token = sys.argv[1], sys.argv[2]
+try:
+    req = urllib.request.Request("https://api.github.com/user", method="GET")
+    req.add_header("Authorization", f"Bearer {gh_token}")
+    resp = urllib.request.urlopen(req, timeout=10)
+    username = json.load(resp)["login"]
+except Exception as e:
+    print(f"[!] فشل جلب اسم المستخدم من GitHub: {e}")
+    sys.exit(0)
+
+payload = {
+    "git_user_name": username,
+    "git_user_email": f"{username}@users.noreply.github.com",
+}
+try:
+    req2 = urllib.request.Request(
+        f"{oh_host}/api/v1/settings",
+        data=json.dumps(payload).encode(),
+        method="POST",
+    )
+    req2.add_header("Content-Type", "application/json")
+    r = urllib.request.urlopen(req2, timeout=15)
+    print(f"[+] تم ضبط git_user_name/email لـ OpenHands ({username}) بنجاح" if r.status == 200 else f"[!] رد غير متوقع: {r.status}")
+except Exception as e:
+    print(f"[!] فشل ضبط git_user_name/email: {e}")
+GITCFG
+fi
+
 log "✅ تم الـ sync بنجاح!"
 exit 0
