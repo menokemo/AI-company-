@@ -29,7 +29,8 @@ BASE     = get_openwebui_url()
 INSTALL_DIR = os.environ.get("INSTALL_DIR", "/opt/ai-company")
 ENV_FILE = os.path.join(INSTALL_DIR, "infrastructure", ".env")
 BASE_DIR = INSTALL_DIR
-TOOL_FILE = os.path.join(BASE_DIR, "tools-api", "openwebui_tools.py")
+TOOL_FILE   = os.path.join(BASE_DIR, "tools-api", "openwebui_tools.py")
+FILTER_FILE = os.path.join(BASE_DIR, "tools-api", "time_awareness_filter.py")
 
 # Increased timeouts and retry configuration
 REQUEST_TIMEOUT = 60  # 60 seconds per request
@@ -167,6 +168,40 @@ def main():
             else:
                 print(f"  [!] Tool upload failed ({status}): {str(data)[:150]}")
 
+    # ── Upload/update Time Awareness filter ───────────────────────
+    existing_filters, _ = req("GET", "/api/v1/functions/", token=token)
+    filter_list = existing_filters if isinstance(existing_filters, list) else []
+    filter_exists = any(f.get("id") == "ai_company_time_awareness" for f in filter_list)
+
+    try:
+        filter_content = open(FILTER_FILE, encoding="utf-8").read()
+    except Exception:
+        print(f"  [!] Filter file not found: {FILTER_FILE}")
+        filter_content = None
+
+    if filter_content:
+        filter_payload = {
+            "id":      "ai_company_time_awareness",
+            "name":    "AI Company Time Awareness",
+            "content": filter_content,
+            "meta":    {"description": "يحقن التوقيت الحالي في كل رسالة"},
+        }
+        if filter_exists:
+            print("  Updating Time Awareness filter...")
+            data, status = req("POST", "/api/v1/functions/id/ai_company_time_awareness/update", filter_payload, token=token)
+        else:
+            print("  Uploading Time Awareness filter...")
+            data, status = req("POST", "/api/v1/functions/create", filter_payload, token=token)
+        if status in (200, 201):
+            print("  [✓] Filter ready!")
+            # toggle بيقلب القيمة (مش "يفعّل دايمًا") — نتأكد من الحالة الحالية
+            # أولاً، ونفعّله فقط لو كان متوقفاً (نتجنب تعطيله بالغلط لو كان مفعّل)
+            cur, _ = req("GET", "/api/v1/functions/id/ai_company_time_awareness", token=token)
+            if isinstance(cur, dict) and not cur.get("is_active", False):
+                req("POST", "/api/v1/functions/id/ai_company_time_awareness/toggle", None, token=token)
+        else:
+            print(f"  [!] Filter setup failed ({status}): {str(data)[:150]}")
+
     # ── Create Project Manager model ─────────────────────────────
     print("  Creating Project Manager model...")
     try:
@@ -209,7 +244,8 @@ def main():
         "meta": {
             "description": "مدير مشاريع ذكاء اصطناعي — يحوّل أفكارك لتطبيقات حقيقية",
             "capabilities": {"tools": True},
-            "toolIds": ["ai_company_tools"]
+            "toolIds": ["ai_company_tools"],
+            "filterIds": ["ai_company_time_awareness"]
         },
         "params": {
             "system": sys_prompt,
