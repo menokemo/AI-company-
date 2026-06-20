@@ -126,3 +126,57 @@ class Tools:
             )
         except Exception as e:
             return f"❌ Error creating project: {str(e)}"
+
+    def check_project_status(
+        self,
+        name: str,
+    ) -> str:
+        """
+        Check the REAL current status of a previously-created project by
+        checking GitHub directly (commits and open Pull Requests).
+        Use this whenever the user asks if a project is done, finished, or
+        ready — you have NO memory of OpenHands' internal progress, so you
+        MUST call this tool to get a real answer. NEVER guess or say you
+        don't have the ability to check — this tool gives you the real status.
+
+        :param name: The project name used when it was created
+        :return: Real status (still in progress / completed) with details
+        """
+        try:
+            data = json.dumps({"name": name}).encode()
+            req = urllib.request.Request(
+                f"{TOOLS_API}/project-status",
+                data=data, method="POST"
+            )
+            req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req, timeout=20) as r:
+                result = json.load(r)
+
+            if result.get("error"):
+                return f"❌ {result['error']}"
+
+            repo_url = result.get("repo_url", "")
+            if result.get("still_initializing"):
+                return (
+                    f"⏳ **Still in progress** — OpenHands hasn't pushed any real "
+                    f"code yet (only the initial empty commit exists so far).\n"
+                    f"📁 Repo: {repo_url}\n"
+                    f"This can take 10–20 minutes. Try checking again in a few minutes."
+                )
+
+            commits_list = "\n".join(f"- {c}" for c in result.get("recent_commits", []))
+            prs = result.get("open_pull_requests", [])
+            pr_text = ""
+            if prs:
+                pr_text = "\n\n📬 **Open Pull Request(s):**\n" + "\n".join(
+                    f"- [{p['title']}]({p['url']})" for p in prs
+                )
+
+            return (
+                f"✅ **Real progress found!** ({result.get('commit_count')} commits)\n"
+                f"📁 Repo: {repo_url}\n\n"
+                f"**Recent commits:**\n{commits_list}"
+                f"{pr_text}"
+            )
+        except Exception as e:
+            return f"❌ Error checking project status: {str(e)}"
