@@ -20,6 +20,7 @@ class Tools:
         name: str,
         description: str,
         requirements: str,
+        accent_color: Optional[str] = None,
     ) -> str:
         """
         Generate 3 UI/UX mockup designs for a project.
@@ -38,6 +39,9 @@ class Tools:
             sunglasses, browsing by frame style/brand, no online payment —
             customers order via a WhatsApp button on each product").
         :param requirements: Comma-separated list of key screens/features
+        :param accent_color: Optional hex color (e.g. "#16a34a") if the
+            client specified a preferred brand/accent color — leave empty
+            if they didn't, and a sensible default will be used per style.
         :return: Formatted message with 3 mockup links
         """
         try:
@@ -45,6 +49,7 @@ class Tools:
                 "name": name,
                 "description": description,
                 "requirements": requirements,
+                "accent_color": accent_color or "",
             }).encode()
             req = urllib.request.Request(
                 f"{TOOLS_API}/generate-mockups",
